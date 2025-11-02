@@ -132,14 +132,30 @@ public RoomResponseDTO updateRoom(String roomID, UpdateRoomRequestDTO dto) {
     String propertyID = roomType.getProperty().getPropertyID();
     Integer floor = roomType.getFloor();
     
-    // Hitung unit number dengan query existing
-    List<Room> existingRoomsForRoomType = roomRepository.findByFloorAndRoomTypeID(floor, roomType.getRoomTypeID());
-    Integer unitNumber = existingRoomsForRoomType.size() + 1;
+    System.out.println("🔑 Generating Room ID:");
+    System.out.println("   Property ID: " + propertyID);
+    System.out.println("   Floor: " + floor);
+    System.out.println("   Room Type ID: " + roomType.getRoomTypeID());
+    
+    // ✅ FIX: Hitung SEMUA rooms di floor tersebut (semua room types)
+    // Bukan hanya rooms untuk room type tertentu
+    List<Room> existingRoomsOnFloor = roomRepository.findByPropertyIDAndFloor(
+        propertyID, 
+        floor
+    );
+    
+    Integer unitNumber = existingRoomsOnFloor.size() + 1;
+    
+    System.out.println("   Existing Rooms on Floor " + floor + ": " + existingRoomsOnFloor.size());
+    System.out.println("   New Unit Number: " + unitNumber);
     
     // ✅ Format: propertyID-floorunit
-    // Contoh: APT-0000-004-101 (unit ke-1 pada lantai 1)
     String floorUnit = String.format("%d%02d", floor, unitNumber);
-    return propertyID + "-" + floorUnit;
+    String roomID = propertyID + "-" + floorUnit;
+    
+    System.out.println("   Generated Room ID: " + roomID);
+    
+    return roomID;
 }
 
     // Helper method untuk konversi Entity -> DTO

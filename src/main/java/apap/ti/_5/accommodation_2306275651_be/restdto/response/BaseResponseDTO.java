@@ -1,5 +1,9 @@
 package apap.ti._5.accommodation_2306275651_be.restdto.response;
 
+import java.util.Date;
+
+import com.fasterxml.jackson.annotation.JsonFormat;
+
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -13,14 +17,16 @@ public class BaseResponseDTO<T> {
     private int status;
     private String message;
     private T data;
-    private Long timestamp;
+    @JsonFormat(shape = JsonFormat.Shape.STRING, timezone="Asia/Jakarta")
+    private Date timestamp;
 
     public static <T> BaseResponseDTO<T> success(String message, T data) {
         return BaseResponseDTO.<T>builder()
                 .status(200)
                 .message(message)
                 .data(data)
-                .timestamp(System.currentTimeMillis())
+
+                .timestamp(new Date())
                 .build();
     }
 
@@ -28,7 +34,7 @@ public class BaseResponseDTO<T> {
         return BaseResponseDTO.<T>builder()
                 .status(status)
                 .message(message)
-                .timestamp(System.currentTimeMillis())
+                .timestamp(new Date())
                 .build();
     }
 }

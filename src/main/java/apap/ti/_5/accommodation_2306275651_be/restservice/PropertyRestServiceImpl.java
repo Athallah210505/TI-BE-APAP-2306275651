@@ -19,6 +19,7 @@ import apap.ti._5.accommodation_2306275651_be.restdto.request.property.CreatePro
 import apap.ti._5.accommodation_2306275651_be.restdto.request.property.UpdatePropertyRequestDTO;
 import apap.ti._5.accommodation_2306275651_be.restdto.request.room.CreateRoomRequestDTO;
 import apap.ti._5.accommodation_2306275651_be.restdto.request.roomtype.CreateRoomTypeRequestDTO;
+import apap.ti._5.accommodation_2306275651_be.restdto.request.roomtype.UpdateRoomTypeRequestDTO;
 import apap.ti._5.accommodation_2306275651_be.restdto.response.property.PropertyResponseDTO;
 import apap.ti._5.accommodation_2306275651_be.restdto.response.property.RoomTypeInfoDTO;
 import apap.ti._5.accommodation_2306275651_be.restdto.response.room.RoomResponseDTO;
@@ -175,7 +176,7 @@ public class PropertyRestServiceImpl implements PropertyRestService {
         
         Property existingProperty = propertyOpt.get();
         
-        // Update fields
+        // ✅ Update property fields
         existingProperty.setPropertyName(updatePropertyRequestDTO.getPropertyName() != null ? 
                                        updatePropertyRequestDTO.getPropertyName() : existingProperty.getPropertyName());
         
@@ -196,7 +197,39 @@ public class PropertyRestServiceImpl implements PropertyRestService {
         existingProperty.setUpdatedDate(LocalDateTime.now());
         
         Property updatedProperty = propertyRepository.save(existingProperty);
-        return convertToPropertyResponseDTO(updatedProperty, null);
+        
+        // ✅ Update room types jika ada di request
+        if (updatePropertyRequestDTO.getRoomTypes() != null && !updatePropertyRequestDTO.getRoomTypes().isEmpty()) {
+            for (UpdateRoomTypeRequestDTO roomTypeDTO : updatePropertyRequestDTO.getRoomTypes()) {
+                roomTypeRestService.updateRoomType(roomTypeDTO.getRoomTypeID(), roomTypeDTO);
+            }
+        }
+        
+        // ✅ Fetch updated room types
+        List<RoomTypeResponseDTO> roomTypes = roomTypeRestService.getRoomTypesByProperty(id);
+        List<RoomTypeInfoDTO> roomTypeInfoList = new ArrayList<>();
+        
+        for (RoomTypeResponseDTO roomType : roomTypes) {
+            List<RoomResponseDTO> rooms = roomRestService.getRoomsByRoomType(roomType.getRoomTypeID());
+            List<String> roomIDs = rooms.stream()
+                    .map(RoomResponseDTO::getRoomID)
+                    .collect(Collectors.toList());
+            
+            RoomTypeInfoDTO roomTypeInfo = RoomTypeInfoDTO.builder()
+                    .roomTypeID(roomType.getRoomTypeID())
+                    .roomTypeName(roomType.getName())
+                    .floor(roomType.getFloor())
+                    .capacity(roomType.getCapacity())
+                    .price(roomType.getPrice())
+                    .facility(roomType.getFacility())
+                    .description(roomType.getDescription())
+                    .roomIDs(roomIDs)
+                    .build();
+            
+            roomTypeInfoList.add(roomTypeInfo);
+        }
+        
+        return convertToPropertyResponseDTO(updatedProperty, roomTypeInfoList);
     }
     
     private String getTypePrefix(Integer type) {

@@ -70,21 +70,38 @@ public class RoomTypeRestServiceImpl implements RoomTypeRestService {
     }
 
     @Override
-    public RoomTypeResponseDTO updateRoomType(String roomTypeID, UpdateRoomTypeRequestDTO dto) {
-        RoomType roomType = roomTypeRepository.findById(roomTypeID)
-                .orElseThrow(() -> new RuntimeException("Room type not found with id: " + roomTypeID));
-        
-        // Update fields
-        roomType.setName(dto.getName());
-        roomType.setPrice(dto.getPrice());
-        roomType.setDescription(dto.getDescription());
+public RoomTypeResponseDTO updateRoomType(String roomTypeID, UpdateRoomTypeRequestDTO dto) {
+    RoomType roomType = roomTypeRepository.findById(roomTypeID)
+            .orElseThrow(() -> new RuntimeException("Room type not found with id: " + roomTypeID));
+    
+    
+    if (dto.getCapacity() != null) {
         roomType.setCapacity(dto.getCapacity());
-        roomType.setFacility(dto.getFacility());
-        roomType.setFloor(dto.getFloor());
-        
-        RoomType updatedRoomType = roomTypeRepository.save(roomType);
-        return convertToResponseDTO(updatedRoomType);
     }
+    if (dto.getPrice() != null) {
+        roomType.setPrice(dto.getPrice());
+    }
+    if (dto.getFacility() != null) {
+        roomType.setFacility(dto.getFacility());
+    }
+    if (dto.getDescription() != null) {
+        roomType.setDescription(dto.getDescription());
+    }
+    
+    RoomType updatedRoomType = roomTypeRepository.save(roomType);
+    
+    return RoomTypeResponseDTO.builder()
+            .roomTypeID(updatedRoomType.getRoomTypeID())
+            .name(updatedRoomType.getName())
+            .floor(updatedRoomType.getFloor())
+            .capacity(updatedRoomType.getCapacity())
+            .price(updatedRoomType.getPrice())
+            .facility(updatedRoomType.getFacility())
+            .description(updatedRoomType.getDescription())
+            .propertyID(updatedRoomType.getProperty() != null ? updatedRoomType.getProperty().getPropertyID() : null)
+            .build();
+}
+
 
     @Override
     public void deleteRoomType(String roomTypeID) {

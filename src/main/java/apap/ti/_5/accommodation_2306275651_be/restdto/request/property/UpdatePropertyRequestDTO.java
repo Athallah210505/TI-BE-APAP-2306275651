@@ -1,10 +1,17 @@
 package apap.ti._5.accommodation_2306275651_be.restdto.request.property;
 
-import jakarta.validation.constraints.*;
+import java.util.List;
+
+import apap.ti._5.accommodation_2306275651_be.restdto.request.roomtype.UpdateRoomTypeRequestDTO;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+
 
 @Data
 @Builder
@@ -36,4 +43,6 @@ public class UpdatePropertyRequestDTO {
     @Min(value = 0, message = "Active status must be 0 or 1")
     @Max(value = 1, message = "Active status must be 0 or 1")
     private Integer activeStatus;
+
+    private List<UpdateRoomTypeRequestDTO> roomTypes;
 }
