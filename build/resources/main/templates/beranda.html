@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:text="${title}">SiDating - Home</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background: linear-gradient(135deg, #74b9ff 0%, #0984e3 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .container {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            text-align: center;
+            max-width: 600px;
+            width: 90%;
+        }
+        h1 {
+            color: #2c3e50;
+            font-size: 2.5em;
+            margin-bottom: 20px;
+            font-weight: bold;
+        }
+        .welcome-box {
+            background: linear-gradient(135deg, #74b9ff 0%, #0984e3 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 15px;
+            margin: 30px 0;
+            font-size: 1.2em;
+            font-weight: bold;
+            box-shadow: 0 5px 15px rgba(116, 185, 255, 0.3);
+        }
+        .button-group {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            margin-top: 30px;
+            flex-wrap: wrap;
+        }
+        .btn {
+            padding: 15px 30px;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: bold;
+            text-decoration: none;
+            color: white;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            min-width: 150px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+        }
+        .btn-profiles {
+            background: linear-gradient(135deg, #00b894 0%, #00a085 100%);
+        }
+        .btn-profiles:hover {
+            background: linear-gradient(135deg, #00a085 0%, #008f75 100%);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 15px rgba(0, 184, 148, 0.4);
+        }
+        .btn-posts {
+            background: linear-gradient(135deg, #fd79a8 0%, #e84393 100%);
+        }
+        .btn-posts:hover {
+            background: linear-gradient(135deg, #e84393 0%, #d63384 100%);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 15px rgba(253, 121, 168, 0.4);
+        }
+        .emoji {
+            font-size: 1.2em;
+            margin: 0 5px;
+        }
+        @media (max-width: 600px) {
+            .container {
+                padding: 30px 20px;
+            }
+            h1 {
+                font-size: 2em;
+            }
+            .button-group {
+                flex-direction: column;
+                align-items: center;
+            }
+            .btn {
+                width: 100%;
+                max-width: 250px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1 th:text="${message}">Hello World from Spring Boot MVC!</h1>
+        
+        <div class="welcome-box">
+            <p>Welcome to SiDating <span class="emoji"></span></p>
+        </div>
+        
+        <div class="button-group">
+            <a th:href="@{/booking}" class="btn btn-profiles">
+                👤 Go to Booking
+            </a>
+            <a th:href="@{/akomodasi}" class="btn btn-posts">
+                📝 Go to Akomodasi
+            </a>
+        </div>
+    </div>
+</body>
+</html>
