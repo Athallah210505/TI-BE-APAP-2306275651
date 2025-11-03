@@ -189,16 +189,34 @@ public class PropertyRestController {
     }
 
     private boolean isValidRoomTypeName(Integer propertyType, String roomTypeName) {
-        return switch (propertyType) {
-            case 1 -> List.of("Single Room", "Double Room", "Deluxe Room", "Superior Room", "Suite", "Family Room")
-                    .contains(roomTypeName);
-            case 2 -> List.of("Luxury", "Beachfront", "Mountside", "Eco-friendly", "Romantic")
-                    .contains(roomTypeName);
-            case 3 -> List.of("Studio", "1BR", "2BR", "3BR", "Penthouse")
-                    .contains(roomTypeName);
-            default -> false;
-        };
+    // Convert room type name to uppercase and replace spaces with underscores
+    String normalizedName = roomTypeName.trim().replace(" ", "_").toUpperCase();
+    
+    switch (propertyType) {
+        case 1: // Hotel
+            return normalizedName.equals("SINGLE_ROOM") || 
+                   normalizedName.equals("DOUBLE_ROOM") || 
+                   normalizedName.equals("DELUXE_ROOM") || 
+                   normalizedName.equals("SUPERIOR_ROOM") || 
+                   normalizedName.equals("SUITE") || 
+                   normalizedName.equals("FAMILY_ROOM");
+        case 2: // Villa
+            return normalizedName.equals("LUXURY") || 
+                   normalizedName.equals("BEACHFRONT") || 
+                   normalizedName.equals("MOUNTSIDE") || 
+                   normalizedName.equals("ECO_FRIENDLY") ||
+                   normalizedName.equals("ECO-FRIENDLY") ||  // Support both
+                   normalizedName.equals("ROMANTIC");
+        case 3: // Apartment
+            return normalizedName.equals("STUDIO") || 
+                   normalizedName.equals("1BR") || 
+                   normalizedName.equals("2BR") || 
+                   normalizedName.equals("3BR") || 
+                   normalizedName.equals("PENTHOUSE");
+        default:
+            return false;
     }
+}
 
     @GetMapping("/property/update/{id}")
     public ResponseEntity<BaseResponseDTO<PropertyResponseDTO>> getUpdatePropertyForm(
@@ -484,94 +502,106 @@ public class PropertyRestController {
     }
 
     @PostMapping("/property/maintenance/add")
-    public ResponseEntity<BaseResponseDTO<RoomResponseDTO>> addMaintenanceSchedule(
-            @Valid @RequestBody UpdateRoomRequestDTO updateRoomRequest,
-            BindingResult bindingResult) {
+public ResponseEntity<BaseResponseDTO<RoomResponseDTO>> addMaintenanceSchedule(
+        @Valid @RequestBody UpdateRoomRequestDTO updateRoomRequest,
+        BindingResult bindingResult) {
+    
+    var baseResponseDTO = new BaseResponseDTO<RoomResponseDTO>();
+    
+    if (bindingResult.hasFieldErrors()) {
+        StringBuilder errorMessages = new StringBuilder();
+        List<FieldError> errors = bindingResult.getFieldErrors();
+        for (FieldError error : errors) {
+            errorMessages.append(error.getDefaultMessage()).append("; ");
+        }
         
-        var baseResponseDTO = new BaseResponseDTO<RoomResponseDTO>();
-        
-        if (bindingResult.hasFieldErrors()) {
-            StringBuilder errorMessages = new StringBuilder();
-            List<FieldError> errors = bindingResult.getFieldErrors();
-            for (FieldError error : errors) {
-                errorMessages.append(error.getDefaultMessage()).append("; ");
-            }
-            
+        baseResponseDTO.setStatus(HttpStatus.BAD_REQUEST.value());
+        baseResponseDTO.setMessage(errorMessages.toString());
+        baseResponseDTO.setTimestamp(new Date());
+        return new ResponseEntity<>(baseResponseDTO, HttpStatus.BAD_REQUEST);
+    }
+    
+    try {
+        // ✅ Validasi: maintenance start & end harus ada
+        if (updateRoomRequest.getMaintenanceStart() == null || 
+            updateRoomRequest.getMaintenanceEnd() == null) {
             baseResponseDTO.setStatus(HttpStatus.BAD_REQUEST.value());
-            baseResponseDTO.setMessage(errorMessages.toString());
-            baseResponseDTO.setTimestamp(new Date()); 
+            baseResponseDTO.setMessage("❌ Konfirmasi: Tanggal mulai dan selesai perbaikan wajib diisi");
+            baseResponseDTO.setTimestamp(new Date());
             return new ResponseEntity<>(baseResponseDTO, HttpStatus.BAD_REQUEST);
         }
         
-        try {
-            if (updateRoomRequest.getMaintenanceEnd() != null && 
-                updateRoomRequest.getMaintenanceStart() != null) {
-                
-                if (updateRoomRequest.getMaintenanceEnd().isBefore(updateRoomRequest.getMaintenanceStart())) {
-                    baseResponseDTO.setStatus(HttpStatus.BAD_REQUEST.value());
-                    baseResponseDTO.setMessage(" Konfirmasi: Tanggal selesai perbaikan tidak boleh lebih awal dari tanggal mulai");
-                    baseResponseDTO.setTimestamp(new Date()); 
-                    return new ResponseEntity<>(baseResponseDTO, HttpStatus.BAD_REQUEST);
-                }
-                
-                if (updateRoomRequest.getMaintenanceEnd().toLocalDate()
-                        .equals(updateRoomRequest.getMaintenanceStart().toLocalDate())) {
-                    if (updateRoomRequest.getMaintenanceEnd().toLocalTime()
-                            .isBefore(updateRoomRequest.getMaintenanceStart().toLocalTime())) {
-                        baseResponseDTO.setStatus(HttpStatus.BAD_REQUEST.value());
-                        baseResponseDTO.setMessage(" Konfirmasi: Pada hari yang sama, waktu selesai tidak boleh lebih awal dari waktu mulai");
-                        baseResponseDTO.setTimestamp(new Date()); 
-                        return new ResponseEntity<>(baseResponseDTO, HttpStatus.BAD_REQUEST);
-                    }
-                }
-            }
-            
-            RoomResponseDTO existingRoom = roomRestService.getRoomById(updateRoomRequest.getName());
-            
-            if (existingRoom == null) {
-                baseResponseDTO.setStatus(HttpStatus.NOT_FOUND.value());
-                baseResponseDTO.setMessage(" Konfirmasi: Kamar tidak ditemukan");
-                baseResponseDTO.setTimestamp(new Date()); 
-                return new ResponseEntity<>(baseResponseDTO, HttpStatus.NOT_FOUND);
-            }
-            
-            boolean hasConflict = roomRestService.hasBookingConflict(
-                existingRoom.getRoomID(), 
-                updateRoomRequest.getMaintenanceStart().toString(), 
-                updateRoomRequest.getMaintenanceEnd().toString()
-            );
-            if (hasConflict) {
+        // ✅ Validasi: Tanggal selesai tidak boleh lebih awal dari tanggal mulai
+        if (updateRoomRequest.getMaintenanceEnd().isBefore(updateRoomRequest.getMaintenanceStart())) {
+            baseResponseDTO.setStatus(HttpStatus.BAD_REQUEST.value());
+            baseResponseDTO.setMessage("❌ Konfirmasi: Tanggal selesai perbaikan tidak boleh lebih awal dari tanggal mulai");
+            baseResponseDTO.setTimestamp(new Date());
+            return new ResponseEntity<>(baseResponseDTO, HttpStatus.BAD_REQUEST);
+        }
+        
+        // ✅ Validasi: Jika di hari yang sama, waktu selesai tidak boleh lebih awal dari waktu mulai
+        if (updateRoomRequest.getMaintenanceEnd().toLocalDate()
+                .equals(updateRoomRequest.getMaintenanceStart().toLocalDate())) {
+            if (updateRoomRequest.getMaintenanceEnd().toLocalTime()
+                    .isBefore(updateRoomRequest.getMaintenanceStart().toLocalTime())) {
                 baseResponseDTO.setStatus(HttpStatus.BAD_REQUEST.value());
-                baseResponseDTO.setMessage(" Konfirmasi: Tidak dapat menjadwalkan perbaikan. Sudah ada booking pada tanggal tersebut");
-                baseResponseDTO.setTimestamp(new Date()); 
+                baseResponseDTO.setMessage("❌ Konfirmasi: Pada hari yang sama, waktu selesai tidak boleh lebih awal dari waktu mulai");
+                baseResponseDTO.setTimestamp(new Date());
                 return new ResponseEntity<>(baseResponseDTO, HttpStatus.BAD_REQUEST);
             }
-            
-            updateRoomRequest.setAvailabilityStatus(0);
-            
-            RoomResponseDTO updatedRoom = roomRestService.updateRoom(
-                existingRoom.getRoomID(), 
-                updateRoomRequest
-            );
-            
-            baseResponseDTO.setStatus(HttpStatus.OK.value());
-            baseResponseDTO.setData(updatedRoom);
-            baseResponseDTO.setMessage("Konfirmasi: Jadwal perbaikan untuk kamar " + 
-                                      updatedRoom.getName() + " berhasil ditambahkan");
-            baseResponseDTO.setTimestamp(new Date()); 
-            return new ResponseEntity<>(baseResponseDTO, HttpStatus.OK);
-            
-        } catch (RuntimeException ex) {
-            baseResponseDTO.setStatus(HttpStatus.BAD_REQUEST.value());
-            baseResponseDTO.setMessage(" Konfirmasi: Gagal menambah jadwal perbaikan. " + ex.getMessage());
-            baseResponseDTO.setTimestamp(new Date()); 
-            return new ResponseEntity<>(baseResponseDTO, HttpStatus.BAD_REQUEST);
-            
-        } catch (Exception ex) {
-            baseResponseDTO.setStatus(HttpStatus.INTERNAL_SERVER_ERROR.value());
-            baseResponseDTO.setMessage("Terjadi kesalahan pada server: " + ex.getMessage());
-            baseResponseDTO.setTimestamp(new Date()); 
-            return new ResponseEntity<>(baseResponseDTO, HttpStatus.INTERNAL_SERVER_ERROR);
         }
+        
+        // ✅ Get existing room by roomID (bukan name)
+        RoomResponseDTO existingRoom = roomRestService.getRoomById(updateRoomRequest.getRoomID());
+        
+        if (existingRoom == null) {
+            baseResponseDTO.setStatus(HttpStatus.NOT_FOUND.value());
+            baseResponseDTO.setMessage("❌ Konfirmasi: Kamar tidak ditemukan");
+            baseResponseDTO.setTimestamp(new Date());
+            return new ResponseEntity<>(baseResponseDTO, HttpStatus.NOT_FOUND);
+        }
+        
+        // ✅ Validasi: Cek apakah ada booking conflict
+        boolean hasConflict = roomRestService.hasBookingConflict(
+            existingRoom.getRoomID(), 
+            updateRoomRequest.getMaintenanceStart().toString(), 
+            updateRoomRequest.getMaintenanceEnd().toString()
+        );
+        
+        if (hasConflict) {
+            baseResponseDTO.setStatus(HttpStatus.BAD_REQUEST.value());
+            baseResponseDTO.setMessage("❌ Konfirmasi: Tidak dapat menjadwalkan perbaikan. Sudah ada booking pada tanggal tersebut");
+            baseResponseDTO.setTimestamp(new Date());
+            return new ResponseEntity<>(baseResponseDTO, HttpStatus.BAD_REQUEST);
+        }
+        
+        // ✅ Set availability status ke 0 (tidak tersedia) saat maintenance
+        updateRoomRequest.setAvailabilityStatus(0);
+        
+        // ✅ Update room dengan maintenance schedule baru (akan replace yang lama)
+        RoomResponseDTO updatedRoom = roomRestService.updateRoom(
+            existingRoom.getRoomID(), 
+            updateRoomRequest
+        );
+        
+        baseResponseDTO.setStatus(HttpStatus.OK.value());
+        baseResponseDTO.setData(updatedRoom);
+        baseResponseDTO.setMessage("✅ Konfirmasi: Jadwal perbaikan untuk kamar " + 
+                                  updatedRoom.getName() + " berhasil ditambahkan");
+        baseResponseDTO.setTimestamp(new Date());
+        return new ResponseEntity<>(baseResponseDTO, HttpStatus.OK);
+        
+    } catch (RuntimeException ex) {
+        baseResponseDTO.setStatus(HttpStatus.BAD_REQUEST.value());
+        baseResponseDTO.setMessage("❌ Konfirmasi: Gagal menambah jadwal perbaikan. " + ex.getMessage());
+        baseResponseDTO.setTimestamp(new Date());
+        return new ResponseEntity<>(baseResponseDTO, HttpStatus.BAD_REQUEST);
+        
+    } catch (Exception ex) {
+        baseResponseDTO.setStatus(HttpStatus.INTERNAL_SERVER_ERROR.value());
+        baseResponseDTO.setMessage("Terjadi kesalahan pada server: " + ex.getMessage());
+        baseResponseDTO.setTimestamp(new Date());
+        return new ResponseEntity<>(baseResponseDTO, HttpStatus.INTERNAL_SERVER_ERROR);
+    }
     }
 }

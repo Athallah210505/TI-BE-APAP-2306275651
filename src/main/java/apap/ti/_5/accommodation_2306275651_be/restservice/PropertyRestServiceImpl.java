@@ -108,17 +108,30 @@ public class PropertyRestServiceImpl implements PropertyRestService {
             List<String> roomIDs = new ArrayList<>();
             
             // ✅ Create Rooms for this room type
-            for (int i = 1; i <= roomTypeData.getUnit(); i++) {
-                CreateRoomRequestDTO createRoomDTO = CreateRoomRequestDTO.builder()
-                        .name(generateRoomName(propertyID, roomTypeData.getFloor(), i))
-                        .roomTypeID(createdRoomType.getRoomTypeID())
-                        .availabilityStatus(1) // Available
-                        .activeRoom(1) // Active
-                        .build();
-                
-                RoomResponseDTO createdRoom = roomRestService.createRoom(createRoomDTO);
-                roomIDs.add(createdRoom.getRoomID());
-            }
+           for (int i = 1; i <= roomTypeData.getUnit(); i++) {
+                    try {
+                        CreateRoomRequestDTO createRoomDTO = CreateRoomRequestDTO.builder()
+                                // ✅ HAPUS name, biarkan RoomRestService yang generate
+                                // .name(generateRoomName(propertyID, roomTypeData.getFloor(), i))
+                                .roomTypeID(createdRoomType.getRoomTypeID())
+                                .availabilityStatus(1)
+                                .activeRoom(1)
+                                .build();
+                        
+                        System.out.println("   🏠 Creating Room " + i + "/" + roomTypeData.getUnit());
+                        
+                        RoomResponseDTO createdRoom = roomRestService.createRoom(createRoomDTO);
+                        roomIDs.add(createdRoom.getRoomID());
+                        
+                        System.out.println("      ✅ Room Created: " + createdRoom.getRoomID());
+                        
+                    } catch (Exception ex) {
+                        System.err.println("      ❌ ERROR creating room " + i + ": " + ex.getMessage());
+                        ex.printStackTrace();
+                        throw new RuntimeException("Failed to create room " + i + " for room type " + 
+                                                roomTypeData.getRoomTypeName() + ": " + ex.getMessage(), ex);
+                    }
+                }
             
             // ✅ Build room type info dengan room IDs (gunakan class terpisah)
             RoomTypeInfoDTO roomTypeInfo = RoomTypeInfoDTO.builder()

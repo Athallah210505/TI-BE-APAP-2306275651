@@ -31,23 +31,29 @@ public class RoomRestServiceImpl implements RoomRestService {
                 .orElseThrow(() -> new RuntimeException("Room type not found with id: " + dto.getRoomTypeID()));
         
         // ✅ Generate room ID jika tidak ada name atau empty
-        String roomID = (dto.getName() != null && !dto.getName().isEmpty()) ? 
-                        dto.getName() : generateRoomID(roomType);
-        
-        // Manual conversion DTO to Entity
-        Room room = Room.builder()
-                .roomID(roomID) // ✅ Set generated ID
-                .name(dto.getName() != null ? dto.getName() : roomID) // Use name or generated ID
-                .roomType(roomType) // ✅ Set relationship
-                .availabilityStatus(dto.getAvailabilityStatus())
-                .activeRoom(dto.getActiveRoom())
-                .maintenanceStart(dto.getMaintenanceStart())
-                .maintenanceEnd(dto.getMaintenanceEnd())
-                .build();
-        
-        Room savedRoom = roomRepository.save(room);
-        return convertToResponseDTO(savedRoom);
-    }
+         String roomID = generateRoomID(roomType);
+    
+    System.out.println("🏠 Creating Room:");
+    System.out.println("   Room ID: " + roomID);
+    System.out.println("   Room Type ID: " + dto.getRoomTypeID());
+    System.out.println("   Room Type Name: " + roomType.getName());
+    
+    // Manual conversion DTO to Entity
+    Room room = Room.builder()
+            .roomID(roomID) // ✅ Use generated ID
+            .name(roomID)   // ✅ Name sama dengan ID (HOT-4000-001-201)
+            .roomType(roomType) // ✅ Set relationship
+            .availabilityStatus(dto.getAvailabilityStatus())
+            .activeRoom(dto.getActiveRoom())
+            .maintenanceStart(dto.getMaintenanceStart())
+            .maintenanceEnd(dto.getMaintenanceEnd())
+            .build();
+    
+    Room savedRoom = roomRepository.save(room);
+    System.out.println("   ✅ Room Saved to DB: " + savedRoom.getRoomID());
+    
+    return convertToResponseDTO(savedRoom);
+}
 
     @Override
     public RoomResponseDTO getRoomById(String roomID) {
@@ -137,23 +143,28 @@ public RoomResponseDTO updateRoom(String roomID, UpdateRoomRequestDTO dto) {
     System.out.println("   Floor: " + floor);
     System.out.println("   Room Type ID: " + roomType.getRoomTypeID());
     
-    // ✅ FIX: Hitung SEMUA rooms di floor tersebut (semua room types)
-    // Bukan hanya rooms untuk room type tertentu
+    // ✅ Hitung SEMUA rooms di floor tersebut (cross room types)
     List<Room> existingRoomsOnFloor = roomRepository.findByPropertyIDAndFloor(
         propertyID, 
         floor
     );
     
+    System.out.println("   🔍 Existing Rooms on Floor " + floor + ":");
+    for (Room r : existingRoomsOnFloor) {
+        System.out.println("      - " + r.getRoomID() + " (" + r.getRoomType().getName() + ")");
+    }
+    
     Integer unitNumber = existingRoomsOnFloor.size() + 1;
     
-    System.out.println("   Existing Rooms on Floor " + floor + ": " + existingRoomsOnFloor.size());
-    System.out.println("   New Unit Number: " + unitNumber);
+    System.out.println("   📊 Total Existing Rooms: " + existingRoomsOnFloor.size());
+    System.out.println("   ➕ New Unit Number: " + unitNumber);
     
     // ✅ Format: propertyID-floorunit
     String floorUnit = String.format("%d%02d", floor, unitNumber);
     String roomID = propertyID + "-" + floorUnit;
     
-    System.out.println("   Generated Room ID: " + roomID);
+    System.out.println("   ✅ Generated Room ID: " + roomID);
+    System.out.println();
     
     return roomID;
 }
