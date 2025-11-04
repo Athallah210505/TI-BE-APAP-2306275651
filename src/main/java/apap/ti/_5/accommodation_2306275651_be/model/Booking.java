@@ -86,12 +86,14 @@ public class Booking {
         if (bookingID == null || bookingID.isBlank()) {
             bookingID = UUID.randomUUID().toString();
         }
-        createdDate = LocalDateTime.now();
+         if (this.createdDate == null) {
+        this.createdDate = LocalDateTime.now();
+    }
         updatedDate = createdDate;
     }
 
     @PreUpdate
     protected void onUpdate() {
-        updatedDate = LocalDateTime.now();
+        this.updatedDate = LocalDateTime.now();
     }
 }

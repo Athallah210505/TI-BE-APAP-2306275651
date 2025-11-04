@@ -26,4 +26,6 @@ public interface BookingRepository extends JpaRepository<Booking, String> {
         @Param("startDate") LocalDateTime startDate,
         @Param("endDate") LocalDateTime endDate
     );
+
+    List<Booking> findByRoom_RoomIDAndStatus(String roomID, Integer status);
 }
