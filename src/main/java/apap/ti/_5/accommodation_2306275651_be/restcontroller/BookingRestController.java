@@ -64,7 +64,7 @@ public class BookingRestController {
             if (room == null) {
                 baseResponseDTO.setStatus(HttpStatus.NOT_FOUND.value());
                 baseResponseDTO.setMessage("Kamar tidak ditemukan");
-    
+                baseResponseDTO.setTimestamp(new Date());
                 return new ResponseEntity<>(baseResponseDTO, HttpStatus.NOT_FOUND);
             }
             
@@ -72,7 +72,7 @@ public class BookingRestController {
             if (room.getAvailabilityStatus() == 0) {
                 baseResponseDTO.setStatus(HttpStatus.BAD_REQUEST.value());
                 baseResponseDTO.setMessage("Kamar sedang tidak tersedia");
-    
+                baseResponseDTO.setTimestamp(new Date());
                 return new ResponseEntity<>(baseResponseDTO, HttpStatus.BAD_REQUEST);
             }
             
@@ -82,7 +82,7 @@ public class BookingRestController {
                 if (hasConflict) {
                     baseResponseDTO.setStatus(HttpStatus.BAD_REQUEST.value());
                     baseResponseDTO.setMessage("Kamar sudah dibooking pada tanggal tersebut");
-        
+                    baseResponseDTO.setTimestamp(new Date());
                     return new ResponseEntity<>(baseResponseDTO, HttpStatus.BAD_REQUEST);
                 }
             }
@@ -90,13 +90,13 @@ public class BookingRestController {
             baseResponseDTO.setStatus(HttpStatus.OK.value());
             baseResponseDTO.setData(room);
             baseResponseDTO.setMessage("Data kamar untuk booking berhasil ditemukan");
-
+            baseResponseDTO.setTimestamp(new Date());
             return new ResponseEntity<>(baseResponseDTO, HttpStatus.OK);
             
         } catch (Exception ex) {
             baseResponseDTO.setStatus(HttpStatus.INTERNAL_SERVER_ERROR.value());
             baseResponseDTO.setMessage("Terjadi kesalahan pada server: " + ex.getMessage());
-
+            baseResponseDTO.setTimestamp(new Date());
             return new ResponseEntity<>(baseResponseDTO, HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
@@ -118,7 +118,7 @@ public class BookingRestController {
             
             baseResponseDTO.setStatus(HttpStatus.BAD_REQUEST.value());
             baseResponseDTO.setMessage(errorMessages.toString());
-
+            baseResponseDTO.setTimestamp(new Date());
             return new ResponseEntity<>(baseResponseDTO, HttpStatus.BAD_REQUEST);
         }
         
@@ -128,7 +128,7 @@ public class BookingRestController {
                 request.getCheckOutDate().isEqual(request.getCheckInDate())) {
                 baseResponseDTO.setStatus(HttpStatus.BAD_REQUEST.value());
                 baseResponseDTO.setMessage("❌ Konfirmasi: Tanggal check-out harus minimal 1 hari setelah check-in");
-    
+                baseResponseDTO.setTimestamp(new Date());
                 return new ResponseEntity<>(baseResponseDTO, HttpStatus.BAD_REQUEST);
             }
             
@@ -136,7 +136,7 @@ public class BookingRestController {
             if (request.getCheckInDate().isBefore(LocalDateTime.now())) {
                 baseResponseDTO.setStatus(HttpStatus.BAD_REQUEST.value());
                 baseResponseDTO.setMessage("❌ Konfirmasi: Tanggal check-in tidak boleh di masa lalu");
-    
+                baseResponseDTO.setTimestamp(new Date());
                 return new ResponseEntity<>(baseResponseDTO, HttpStatus.BAD_REQUEST);
             }
             
@@ -147,7 +147,7 @@ public class BookingRestController {
                 if (room == null) {
                     baseResponseDTO.setStatus(HttpStatus.NOT_FOUND.value());
                     baseResponseDTO.setMessage("❌ Konfirmasi: Kamar tidak ditemukan");
-        
+                    baseResponseDTO.setTimestamp(new Date());
                     return new ResponseEntity<>(baseResponseDTO, HttpStatus.NOT_FOUND);
                 }
                 
@@ -156,7 +156,7 @@ public class BookingRestController {
                     baseResponseDTO.setStatus(HttpStatus.BAD_REQUEST.value());
                     baseResponseDTO.setMessage("❌ Konfirmasi: Kapasitas tamu (" + request.getCapacity() + 
                                               ") melebihi kapasitas kamar (" + room.getCapacity() + ")");
-        
+                    baseResponseDTO.setTimestamp(new Date());
                     return new ResponseEntity<>(baseResponseDTO, HttpStatus.BAD_REQUEST);
                 }
                 
@@ -170,7 +170,7 @@ public class BookingRestController {
                 if (hasConflict) {
                     baseResponseDTO.setStatus(HttpStatus.BAD_REQUEST.value());
                     baseResponseDTO.setMessage("❌ Konfirmasi: Kamar sudah dibooking atau sedang maintenance pada tanggal tersebut");
-        
+                    baseResponseDTO.setTimestamp(new Date());
                     return new ResponseEntity<>(baseResponseDTO, HttpStatus.BAD_REQUEST);
                 }
                 
@@ -180,7 +180,7 @@ public class BookingRestController {
                           request.getCheckInDate().isAfter(room.getMaintenanceEnd()))) {
                         baseResponseDTO.setStatus(HttpStatus.BAD_REQUEST.value());
                         baseResponseDTO.setMessage("❌ Konfirmasi: Kamar sedang dalam jadwal maintenance pada tanggal tersebut");
-            
+                        baseResponseDTO.setTimestamp(new Date());
                         return new ResponseEntity<>(baseResponseDTO, HttpStatus.BAD_REQUEST);
                     }
                 }
@@ -192,13 +192,13 @@ public class BookingRestController {
             baseResponseDTO.setStatus(HttpStatus.CREATED.value());
             baseResponseDTO.setData(response);
             baseResponseDTO.setMessage("✅ Konfirmasi: Booking berhasil dibuat dengan ID " + response.getBookingID());
-
+            baseResponseDTO.setTimestamp(new Date());
             return new ResponseEntity<>(baseResponseDTO, HttpStatus.CREATED);
             
         } catch (Exception ex) {
             baseResponseDTO.setStatus(HttpStatus.INTERNAL_SERVER_ERROR.value());
             baseResponseDTO.setMessage("❌ Konfirmasi: Gagal membuat booking. Error: " + ex.getMessage());
-
+            baseResponseDTO.setTimestamp(new Date());
             return new ResponseEntity<>(baseResponseDTO, HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
@@ -220,13 +220,13 @@ public class BookingRestController {
             baseResponseDTO.setStatus(HttpStatus.OK.value());
             baseResponseDTO.setData(response);
             baseResponseDTO.setMessage("Detail Booking Berhasil Ditemukan");
-
+            baseResponseDTO.setTimestamp(new Date());
             return new ResponseEntity<>(baseResponseDTO, HttpStatus.OK);
             
         } catch (Exception ex) {
             baseResponseDTO.setStatus(HttpStatus.INTERNAL_SERVER_ERROR.value());
             baseResponseDTO.setMessage("Terjadi kesalahan pada server: " + ex.getMessage());
-
+            baseResponseDTO.setTimestamp(new Date());
             return new ResponseEntity<>(baseResponseDTO, HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
@@ -271,13 +271,13 @@ public class BookingRestController {
             baseResponseDTO.setStatus(HttpStatus.OK.value());
             baseResponseDTO.setData(bookings);
             baseResponseDTO.setMessage("Data Booking Berhasil Ditemukan");
-
+            baseResponseDTO.setTimestamp(new Date());
             return new ResponseEntity<>(baseResponseDTO, HttpStatus.OK);
             
         } catch (Exception ex) {
             baseResponseDTO.setStatus(HttpStatus.INTERNAL_SERVER_ERROR.value());
             baseResponseDTO.setMessage("Terjadi kesalahan pada server: " + ex.getMessage());
-
+            baseResponseDTO.setTimestamp(new Date());
             return new ResponseEntity<>(baseResponseDTO, HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
@@ -294,13 +294,13 @@ public class BookingRestController {
             baseResponseDTO.setStatus(HttpStatus.OK.value());
             baseResponseDTO.setData(responses);
             baseResponseDTO.setMessage("Data Booking Customer Berhasil Ditemukan");
-
+            baseResponseDTO.setTimestamp(new Date());
             return new ResponseEntity<>(baseResponseDTO, HttpStatus.OK);
             
         } catch (Exception ex) {
             baseResponseDTO.setStatus(HttpStatus.INTERNAL_SERVER_ERROR.value());
             baseResponseDTO.setMessage("Terjadi kesalahan pada server: " + ex.getMessage());
-
+            baseResponseDTO.setTimestamp(new Date());
             return new ResponseEntity<>(baseResponseDTO, HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
@@ -317,13 +317,13 @@ public class BookingRestController {
             baseResponseDTO.setStatus(HttpStatus.OK.value());
             baseResponseDTO.setData(responses);
             baseResponseDTO.setMessage("Data Booking dengan Status " + status + " Berhasil Ditemukan");
-
+            baseResponseDTO.setTimestamp(new Date());
             return new ResponseEntity<>(baseResponseDTO, HttpStatus.OK);
             
         } catch (Exception ex) {
             baseResponseDTO.setStatus(HttpStatus.INTERNAL_SERVER_ERROR.value());
             baseResponseDTO.setMessage("Terjadi kesalahan pada server: " + ex.getMessage());
-
+            baseResponseDTO.setTimestamp(new Date());
             return new ResponseEntity<>(baseResponseDTO, HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
@@ -342,6 +342,7 @@ public class BookingRestController {
             if (booking == null) {
                 baseResponseDTO.setStatus(HttpStatus.NOT_FOUND.value());
                 baseResponseDTO.setMessage("Booking tidak ditemukan");
+                baseResponseDTO.setTimestamp(new Date());
                 return new ResponseEntity<>(baseResponseDTO, HttpStatus.NOT_FOUND);
             }
             
@@ -349,23 +350,27 @@ public class BookingRestController {
             if (booking.getExtraPay() != null && booking.getExtraPay() > 0) {
                 baseResponseDTO.setStatus(HttpStatus.BAD_REQUEST.value());
                 baseResponseDTO.setMessage("❌ Konfirmasi: Booking dengan extra pay tidak dapat diubah");
+                baseResponseDTO.setTimestamp(new Date());
                 return new ResponseEntity<>(baseResponseDTO, HttpStatus.BAD_REQUEST);
             }
             
             if (booking.getRefund() != null && booking.getRefund() > 0) {
                 baseResponseDTO.setStatus(HttpStatus.BAD_REQUEST.value());
                 baseResponseDTO.setMessage("❌ Konfirmasi: Booking dengan refund tidak dapat diubah");
+                baseResponseDTO.setTimestamp(new Date());
                 return new ResponseEntity<>(baseResponseDTO, HttpStatus.BAD_REQUEST);
             }
             
             baseResponseDTO.setStatus(HttpStatus.OK.value());
             baseResponseDTO.setData(booking);
             baseResponseDTO.setMessage("Data booking berhasil ditemukan untuk update");
+            baseResponseDTO.setTimestamp(new Date());
             return new ResponseEntity<>(baseResponseDTO, HttpStatus.OK);
             
         } catch (Exception ex) {
             baseResponseDTO.setStatus(HttpStatus.INTERNAL_SERVER_ERROR.value());
             baseResponseDTO.setMessage("Terjadi kesalahan pada server: " + ex.getMessage());
+            baseResponseDTO.setTimestamp(new Date());
             return new ResponseEntity<>(baseResponseDTO, HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
@@ -387,6 +392,7 @@ public ResponseEntity<BaseResponseDTO<BookingResponseDTO>> updateBooking(
         
         baseResponseDTO.setStatus(HttpStatus.BAD_REQUEST.value());
         baseResponseDTO.setMessage(errorMessages.toString());
+        baseResponseDTO.setTimestamp(new Date());
         return new ResponseEntity<>(baseResponseDTO, HttpStatus.BAD_REQUEST);
     }
     
@@ -397,6 +403,7 @@ public ResponseEntity<BaseResponseDTO<BookingResponseDTO>> updateBooking(
         if (existingBooking == null) {
             baseResponseDTO.setStatus(HttpStatus.NOT_FOUND.value());
             baseResponseDTO.setMessage("Booking tidak ditemukan");
+            baseResponseDTO.setTimestamp(new Date());
             return new ResponseEntity<>(baseResponseDTO, HttpStatus.NOT_FOUND);
         }
         
@@ -405,6 +412,7 @@ public ResponseEntity<BaseResponseDTO<BookingResponseDTO>> updateBooking(
             (existingBooking.getRefund() != null && existingBooking.getRefund() > 0)) {
             baseResponseDTO.setStatus(HttpStatus.BAD_REQUEST.value());
             baseResponseDTO.setMessage("❌ Konfirmasi: Booking dengan extra pay atau refund tidak dapat diubah");
+            baseResponseDTO.setTimestamp(new Date());
             return new ResponseEntity<>(baseResponseDTO, HttpStatus.BAD_REQUEST);
         }
         
@@ -413,6 +421,7 @@ public ResponseEntity<BaseResponseDTO<BookingResponseDTO>> updateBooking(
             request.getCheckOutDate().isEqual(request.getCheckInDate())) {
             baseResponseDTO.setStatus(HttpStatus.BAD_REQUEST.value());
             baseResponseDTO.setMessage("❌ Konfirmasi: Tanggal check-out harus minimal 1 hari setelah check-in");
+            baseResponseDTO.setTimestamp(new Date());
             return new ResponseEntity<>(baseResponseDTO, HttpStatus.BAD_REQUEST);
         }
         
@@ -420,6 +429,7 @@ public ResponseEntity<BaseResponseDTO<BookingResponseDTO>> updateBooking(
         if (request.getCheckInDate().isBefore(LocalDateTime.now())) {
             baseResponseDTO.setStatus(HttpStatus.BAD_REQUEST.value());
             baseResponseDTO.setMessage("❌ Konfirmasi: Tanggal check-in tidak boleh di masa lalu");
+            baseResponseDTO.setTimestamp(new Date());
             return new ResponseEntity<>(baseResponseDTO, HttpStatus.BAD_REQUEST);
         }
         
@@ -430,6 +440,7 @@ public ResponseEntity<BaseResponseDTO<BookingResponseDTO>> updateBooking(
             if (room == null) {
                 baseResponseDTO.setStatus(HttpStatus.NOT_FOUND.value());
                 baseResponseDTO.setMessage("❌ Konfirmasi: Kamar tidak ditemukan");
+                baseResponseDTO.setTimestamp(new Date());
                 return new ResponseEntity<>(baseResponseDTO, HttpStatus.NOT_FOUND);
             }
             
@@ -462,7 +473,7 @@ public ResponseEntity<BaseResponseDTO<BookingResponseDTO>> updateBooking(
                       request.getCheckInDate().isAfter(room.getMaintenanceEnd()))) {
                     baseResponseDTO.setStatus(HttpStatus.BAD_REQUEST.value());
                     baseResponseDTO.setMessage("❌ Konfirmasi: Kamar sedang dalam jadwal maintenance pada tanggal tersebut");
-
+                    baseResponseDTO.setTimestamp(new Date());
                     return new ResponseEntity<>(baseResponseDTO, HttpStatus.BAD_REQUEST);
                 }
             }
@@ -474,11 +485,13 @@ public ResponseEntity<BaseResponseDTO<BookingResponseDTO>> updateBooking(
         baseResponseDTO.setStatus(HttpStatus.OK.value());
         baseResponseDTO.setData(response);
         baseResponseDTO.setMessage("✅ Konfirmasi: Data Booking Berhasil Diupdate");
+        baseResponseDTO.setTimestamp(new Date());
         return new ResponseEntity<>(baseResponseDTO, HttpStatus.OK);
         
     } catch (Exception ex) {
         baseResponseDTO.setStatus(HttpStatus.INTERNAL_SERVER_ERROR.value());
         baseResponseDTO.setMessage("❌ Konfirmasi: Gagal update booking. Error: " + ex.getMessage());
+        baseResponseDTO.setTimestamp(new Date());
         return new ResponseEntity<>(baseResponseDTO, HttpStatus.INTERNAL_SERVER_ERROR);
     }
 }
@@ -500,7 +513,7 @@ public ResponseEntity<BaseResponseDTO<BookingResponseDTO>> updateBooking(
             
             baseResponseDTO.setStatus(HttpStatus.BAD_REQUEST.value());
             baseResponseDTO.setMessage(errorMessages.toString());
-
+            baseResponseDTO.setTimestamp(new Date());
             return new ResponseEntity<>(baseResponseDTO, HttpStatus.BAD_REQUEST);
         }
         
@@ -517,13 +530,13 @@ public ResponseEntity<BaseResponseDTO<BookingResponseDTO>> updateBooking(
             baseResponseDTO.setStatus(HttpStatus.OK.value());
             baseResponseDTO.setData(response);
             baseResponseDTO.setMessage("✅ Konfirmasi: Status Booking Berhasil Diupdate");
-
+            baseResponseDTO.setTimestamp(new Date());
             return new ResponseEntity<>(baseResponseDTO, HttpStatus.OK);
             
         } catch (Exception ex) {
             baseResponseDTO.setStatus(HttpStatus.INTERNAL_SERVER_ERROR.value());
             baseResponseDTO.setMessage("❌ Konfirmasi: Gagal update status. Error: " + ex.getMessage());
-
+            baseResponseDTO.setTimestamp(new Date());
             return new ResponseEntity<>(baseResponseDTO, HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
@@ -537,13 +550,13 @@ public ResponseEntity<BaseResponseDTO<BookingResponseDTO>> updateBooking(
             
             baseResponseDTO.setStatus(HttpStatus.OK.value());
             baseResponseDTO.setMessage("✅ Konfirmasi: Booking Berhasil Dihapus");
-
+            baseResponseDTO.setTimestamp(new Date());
             return new ResponseEntity<>(baseResponseDTO, HttpStatus.OK);
             
         } catch (Exception ex) {
             baseResponseDTO.setStatus(HttpStatus.INTERNAL_SERVER_ERROR.value());
             baseResponseDTO.setMessage("❌ Konfirmasi: Gagal menghapus booking. Error: " + ex.getMessage());
-
+            baseResponseDTO.setTimestamp(new Date());
             return new ResponseEntity<>(baseResponseDTO, HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
@@ -563,6 +576,7 @@ public ResponseEntity<BaseResponseDTO<BookingResponseDTO>> updateBooking(
             
             baseResponseDTO.setStatus(HttpStatus.BAD_REQUEST.value());
             baseResponseDTO.setMessage(errorMessages.toString());
+            baseResponseDTO.setTimestamp(new Date());
             return new ResponseEntity<>(baseResponseDTO, HttpStatus.BAD_REQUEST);
         }
         
@@ -575,11 +589,13 @@ public ResponseEntity<BaseResponseDTO<BookingResponseDTO>> updateBooking(
             baseResponseDTO.setStatus(HttpStatus.OK.value());
             baseResponseDTO.setData(response);
             baseResponseDTO.setMessage("✅ Konfirmasi: Pembayaran berhasil dikonfirmasi");
+            baseResponseDTO.setTimestamp(new Date());
             return new ResponseEntity<>(baseResponseDTO, HttpStatus.OK);
             
         } catch (Exception ex) {
             baseResponseDTO.setStatus(HttpStatus.INTERNAL_SERVER_ERROR.value());
             baseResponseDTO.setMessage("❌ Konfirmasi: Gagal konfirmasi pembayaran. Error: " + ex.getMessage());
+            baseResponseDTO.setTimestamp(new Date());
             return new ResponseEntity<>(baseResponseDTO, HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
@@ -599,6 +615,7 @@ public ResponseEntity<BaseResponseDTO<BookingResponseDTO>> updateBooking(
             
             baseResponseDTO.setStatus(HttpStatus.BAD_REQUEST.value());
             baseResponseDTO.setMessage(errorMessages.toString());
+            baseResponseDTO.setTimestamp(new Date());
             return new ResponseEntity<>(baseResponseDTO, HttpStatus.BAD_REQUEST);
         }
         
@@ -611,11 +628,13 @@ public ResponseEntity<BaseResponseDTO<BookingResponseDTO>> updateBooking(
             baseResponseDTO.setStatus(HttpStatus.OK.value());
             baseResponseDTO.setData(response);
             baseResponseDTO.setMessage("✅ Konfirmasi: Booking berhasil dibatalkan");
+            baseResponseDTO.setTimestamp(new Date());
             return new ResponseEntity<>(baseResponseDTO, HttpStatus.OK);
             
         } catch (Exception ex) {
             baseResponseDTO.setStatus(HttpStatus.INTERNAL_SERVER_ERROR.value());
             baseResponseDTO.setMessage("❌ Konfirmasi: Gagal membatalkan booking. Error: " + ex.getMessage());
+            baseResponseDTO.setTimestamp(new Date());
             return new ResponseEntity<>(baseResponseDTO, HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
@@ -637,6 +656,7 @@ public ResponseEntity<BaseResponseDTO<BookingResponseDTO>> updateBooking(
             
             baseResponseDTO.setStatus(HttpStatus.BAD_REQUEST.value());
             baseResponseDTO.setMessage(errorMessages.toString());
+            baseResponseDTO.setTimestamp(new Date());
             return new ResponseEntity<>(baseResponseDTO, HttpStatus.BAD_REQUEST);
         }
         
@@ -649,11 +669,13 @@ public ResponseEntity<BaseResponseDTO<BookingResponseDTO>> updateBooking(
             baseResponseDTO.setStatus(HttpStatus.OK.value());
             baseResponseDTO.setData(response);
             baseResponseDTO.setMessage("✅ Konfirmasi: Refund berhasil diproses");
+            baseResponseDTO.setTimestamp(new Date());
             return new ResponseEntity<>(baseResponseDTO, HttpStatus.OK);
             
         } catch (Exception ex) {
             baseResponseDTO.setStatus(HttpStatus.INTERNAL_SERVER_ERROR.value());
             baseResponseDTO.setMessage("❌ Konfirmasi: Gagal memproses refund. Error: " + ex.getMessage());
+            baseResponseDTO.setTimestamp(new Date());
             return new ResponseEntity<>(baseResponseDTO, HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }

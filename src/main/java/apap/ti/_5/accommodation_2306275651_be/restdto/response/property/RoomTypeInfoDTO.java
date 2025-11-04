@@ -1,7 +1,9 @@
 package apap.ti._5.accommodation_2306275651_be.restdto.response.property;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
+import apap.ti._5.accommodation_2306275651_be.restdto.response.room.RoomResponseDTO;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -20,4 +22,7 @@ public class RoomTypeInfoDTO {
     private String facility;
     private String description;
     private List<String> roomIDs; // List ID kamar yang dibuat
+    private List<RoomResponseDTO> listRoom;
+    private LocalDateTime createdDate;
+    private LocalDateTime updatedDate;
 }

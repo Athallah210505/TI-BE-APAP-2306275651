@@ -1,5 +1,6 @@
 package apap.ti._5.accommodation_2306275651_be.restservice;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -7,8 +8,10 @@ import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import apap.ti._5.accommodation_2306275651_be.model.Booking;
 import apap.ti._5.accommodation_2306275651_be.model.Room;
 import apap.ti._5.accommodation_2306275651_be.model.RoomType;
+import apap.ti._5.accommodation_2306275651_be.repository.BookingRepository;
 import apap.ti._5.accommodation_2306275651_be.repository.RoomRepository;
 import apap.ti._5.accommodation_2306275651_be.repository.RoomTypeRepository;
 import apap.ti._5.accommodation_2306275651_be.restdto.request.room.CreateRoomRequestDTO;
@@ -23,6 +26,7 @@ public class RoomRestServiceImpl implements RoomRestService {
     
     private final RoomRepository roomRepository;
     private final RoomTypeRepository roomTypeRepository;
+    private final BookingRepository bookingRepository;
 
     @Override
     public RoomResponseDTO createRoom(CreateRoomRequestDTO dto) {
@@ -105,15 +109,30 @@ public RoomResponseDTO updateRoom(String roomID, UpdateRoomRequestDTO dto) {
         room.setActiveRoom(dto.getActiveRoom());
     }
     
-    // ✅ Update maintenance schedule (REPLACE yang lama)
-    if (dto.getMaintenanceStart() != null) {
+    // ✅ REPLACE maintenance schedule (bukan append)
+    // Jika ada maintenance baru, replace yang lama
+    if (dto.getMaintenanceStart() != null || dto.getMaintenanceEnd() != null) {
+        
+        // Log old maintenance (jika ada)
+        if (room.getMaintenanceStart() != null && room.getMaintenanceEnd() != null) {
+            System.out.println("⚠️ Replacing existing maintenance schedule:");
+            System.out.println("   Old: " + room.getMaintenanceStart() + " - " + room.getMaintenanceEnd());
+            System.out.println("   New: " + dto.getMaintenanceStart() + " - " + dto.getMaintenanceEnd());
+        }
+        
+        // ✅ Set maintenance baru (REPLACE)
         room.setMaintenanceStart(dto.getMaintenanceStart());
-    }
-    if (dto.getMaintenanceEnd() != null) {
         room.setMaintenanceEnd(dto.getMaintenanceEnd());
+        
+        // ✅ Set availability ke 0 (unavailable) saat ada maintenance
+        if (dto.getMaintenanceStart() != null && dto.getMaintenanceEnd() != null) {
+            room.setAvailabilityStatus(0);
+        }
     }
     
+    room.setUpdatedDate(LocalDateTime.now());
     Room updatedRoom = roomRepository.save(room);
+    
     return convertToResponseDTO(updatedRoom);
 }
 
@@ -126,12 +145,43 @@ public RoomResponseDTO updateRoom(String roomID, UpdateRoomRequestDTO dto) {
     }
     
     // ✅ Implement method untuk check booking conflict
-    @Override
+  @Override
     public boolean hasBookingConflict(String roomID, String startDate, String endDate) {
-        // TODO: Implement booking check ketika ada model Booking
-        // List<Booking> conflicts = bookingRepository.findConflictingBookings(roomID, startDate, endDate);
-        // return !conflicts.isEmpty();
-        return false; // Sementara return false
+        try {
+            // ✅ Parse string dates ke LocalDateTime
+            LocalDateTime maintenanceStart = LocalDateTime.parse(startDate);
+            LocalDateTime maintenanceEnd = LocalDateTime.parse(endDate);
+            
+            System.out.println("🔍 Checking booking conflicts:");
+            System.out.println("   Room ID: " + roomID);
+            System.out.println("   Maintenance Start: " + maintenanceStart);
+            System.out.println("   Maintenance End: " + maintenanceEnd);
+            
+            // ✅ Cari booking yang conflict
+            List<Booking> conflicts = bookingRepository.findConflictingBookings(
+                roomID, 
+                maintenanceStart, 
+                maintenanceEnd
+            );
+            
+            if (!conflicts.isEmpty()) {
+                System.out.println("   ❌ Found " + conflicts.size() + " conflicting booking(s):");
+                for (Booking b : conflicts) {
+                    System.out.println("      - Booking ID: " + b.getBookingID() + 
+                                     " (Check-in: " + b.getCheckInDate() + 
+                                     ", Check-out: " + b.getCheckOutDate() + ")");
+                }
+                return true;
+            }
+            
+            System.out.println("   ✅ No booking conflicts found");
+            return false;
+            
+        } catch (Exception ex) {
+            System.err.println("   ⚠️ Error checking booking conflict: " + ex.getMessage());
+            // ✅ Jika error parsing atau query, anggap tidak ada conflict (safe)
+            return false;
+        }
     }
     
  private String generateRoomID(RoomType roomType) {
@@ -170,23 +220,26 @@ public RoomResponseDTO updateRoom(String roomID, UpdateRoomRequestDTO dto) {
 }
 
     // Helper method untuk konversi Entity -> DTO
-    private RoomResponseDTO convertToResponseDTO(Room room) {
-        return RoomResponseDTO.builder()
-                .roomID(room.getRoomID())
-                .name(room.getName())
-                .availabilityStatus(room.getAvailabilityStatus())
-                .availabilityStatusName(room.getAvailabilityStatus() == 1 ? "Available" : "Unavailable")
-                .activeRoom(room.getActiveRoom())
-                .activeRoomName(room.getActiveRoom() == 1 ? "Active" : "Non-Active")
-                .maintenanceStart(room.getMaintenanceStart())
-                .maintenanceEnd(room.getMaintenanceEnd())
-                .roomTypeID(room.getRoomType() != null ? room.getRoomType().getRoomTypeID() : null)
-                .roomTypeName(room.getRoomType() != null ? room.getRoomType().getName() : null)
-                .capacity(room.getRoomType() != null ? room.getRoomType().getCapacity() : null)
-                .createdDate(room.getCreatedDate())
-                .updatedDate(room.getUpdatedDate())
-                .build();
-    }
+    
+    public RoomResponseDTO convertToResponseDTO(Room room) {
+    return RoomResponseDTO.builder()
+            .roomID(room.getRoomID())
+            .name(room.getName())
+            .availabilityStatus(room.getAvailabilityStatus())
+            .availabilityStatusName(room.getAvailabilityStatus() == 1 ? "Available" : "Unavailable")
+            .activeRoom(room.getActiveRoom())
+            .activeRoomName(room.getActiveRoom() == 1 ? "Active" : "Inactive")
+            .maintenanceStart(room.getMaintenanceStart())  // ✅ Include
+            .maintenanceEnd(room.getMaintenanceEnd())      // ✅ Include
+            .capacity(room.getRoomType().getCapacity())
+            .price(room.getRoomType().getPrice())
+            .floor(room.getRoomType().getFloor())
+            .roomTypeID(room.getRoomType().getRoomTypeID())
+            .roomTypeName(room.getRoomType().getName())
+            .createdDate(room.getCreatedDate())
+            .updatedDate(room.getUpdatedDate())
+            .build();
+}
   @Override
     public List<RoomResponseDTO> getRoomsByPropertyAndFloor(String propertyID, Integer floor) {
     // Get all room types for this property

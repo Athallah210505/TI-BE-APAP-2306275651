@@ -30,7 +30,7 @@ public class BookingResponseDTO {
 
     private String propertyName;
     private String roomName;
-    
+    private String roomID;
     private LocalDateTime createdDate;
     private LocalDateTime updatedDate;
 }

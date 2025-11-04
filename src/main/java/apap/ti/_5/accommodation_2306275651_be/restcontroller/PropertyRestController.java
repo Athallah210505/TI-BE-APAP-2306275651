@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.*;
 
 import apap.ti._5.accommodation_2306275651_be.restdto.request.property.CreatePropertyRequestDTO;
 import apap.ti._5.accommodation_2306275651_be.restdto.request.property.UpdatePropertyRequestDTO;
+import apap.ti._5.accommodation_2306275651_be.restdto.request.room.CreateMaintenanceRequestDTO;
 import apap.ti._5.accommodation_2306275651_be.restdto.request.room.CreateRoomRequestDTO;
 import apap.ti._5.accommodation_2306275651_be.restdto.request.room.UpdateRoomRequestDTO;
 import apap.ti._5.accommodation_2306275651_be.restdto.request.roomtype.CreateRoomTypeRequestDTO;
@@ -503,11 +504,12 @@ public class PropertyRestController {
 
     @PostMapping("/property/maintenance/add")
 public ResponseEntity<BaseResponseDTO<RoomResponseDTO>> addMaintenanceSchedule(
-        @Valid @RequestBody UpdateRoomRequestDTO updateRoomRequest,
+        @Valid @RequestBody CreateMaintenanceRequestDTO maintenanceRequest,
         BindingResult bindingResult) {
     
     var baseResponseDTO = new BaseResponseDTO<RoomResponseDTO>();
     
+    // ✅ Cek validation errors
     if (bindingResult.hasFieldErrors()) {
         StringBuilder errorMessages = new StringBuilder();
         List<FieldError> errors = bindingResult.getFieldErrors();
@@ -523,8 +525,8 @@ public ResponseEntity<BaseResponseDTO<RoomResponseDTO>> addMaintenanceSchedule(
     
     try {
         // ✅ Validasi: maintenance start & end harus ada
-        if (updateRoomRequest.getMaintenanceStart() == null || 
-            updateRoomRequest.getMaintenanceEnd() == null) {
+        if (maintenanceRequest.getMaintenanceStart() == null || 
+            maintenanceRequest.getMaintenanceEnd() == null) {
             baseResponseDTO.setStatus(HttpStatus.BAD_REQUEST.value());
             baseResponseDTO.setMessage("❌ Konfirmasi: Tanggal mulai dan selesai perbaikan wajib diisi");
             baseResponseDTO.setTimestamp(new Date());
@@ -532,7 +534,7 @@ public ResponseEntity<BaseResponseDTO<RoomResponseDTO>> addMaintenanceSchedule(
         }
         
         // ✅ Validasi: Tanggal selesai tidak boleh lebih awal dari tanggal mulai
-        if (updateRoomRequest.getMaintenanceEnd().isBefore(updateRoomRequest.getMaintenanceStart())) {
+        if (maintenanceRequest.getMaintenanceEnd().isBefore(maintenanceRequest.getMaintenanceStart())) {
             baseResponseDTO.setStatus(HttpStatus.BAD_REQUEST.value());
             baseResponseDTO.setMessage("❌ Konfirmasi: Tanggal selesai perbaikan tidak boleh lebih awal dari tanggal mulai");
             baseResponseDTO.setTimestamp(new Date());
@@ -540,10 +542,10 @@ public ResponseEntity<BaseResponseDTO<RoomResponseDTO>> addMaintenanceSchedule(
         }
         
         // ✅ Validasi: Jika di hari yang sama, waktu selesai tidak boleh lebih awal dari waktu mulai
-        if (updateRoomRequest.getMaintenanceEnd().toLocalDate()
-                .equals(updateRoomRequest.getMaintenanceStart().toLocalDate())) {
-            if (updateRoomRequest.getMaintenanceEnd().toLocalTime()
-                    .isBefore(updateRoomRequest.getMaintenanceStart().toLocalTime())) {
+        if (maintenanceRequest.getMaintenanceEnd().toLocalDate()
+                .equals(maintenanceRequest.getMaintenanceStart().toLocalDate())) {
+            if (maintenanceRequest.getMaintenanceEnd().toLocalTime()
+                    .isBefore(maintenanceRequest.getMaintenanceStart().toLocalTime())) {
                 baseResponseDTO.setStatus(HttpStatus.BAD_REQUEST.value());
                 baseResponseDTO.setMessage("❌ Konfirmasi: Pada hari yang sama, waktu selesai tidak boleh lebih awal dari waktu mulai");
                 baseResponseDTO.setTimestamp(new Date());
@@ -551,8 +553,8 @@ public ResponseEntity<BaseResponseDTO<RoomResponseDTO>> addMaintenanceSchedule(
             }
         }
         
-        // ✅ Get existing room by roomID (bukan name)
-        RoomResponseDTO existingRoom = roomRestService.getRoomById(updateRoomRequest.getRoomID());
+        // ✅ Get existing room
+        RoomResponseDTO existingRoom = roomRestService.getRoomById(maintenanceRequest.getRoomID());
         
         if (existingRoom == null) {
             baseResponseDTO.setStatus(HttpStatus.NOT_FOUND.value());
@@ -561,22 +563,32 @@ public ResponseEntity<BaseResponseDTO<RoomResponseDTO>> addMaintenanceSchedule(
             return new ResponseEntity<>(baseResponseDTO, HttpStatus.NOT_FOUND);
         }
         
-        // ✅ Validasi: Cek apakah ada booking conflict
+        // ✅ Cek apakah ada maintenance schedule yang lama
+        boolean hasExistingMaintenance = existingRoom.getMaintenanceStart() != null && 
+                                        existingRoom.getMaintenanceEnd() != null;
+        
+        // ✅ Validasi: Cek booking conflict
         boolean hasConflict = roomRestService.hasBookingConflict(
             existingRoom.getRoomID(), 
-            updateRoomRequest.getMaintenanceStart().toString(), 
-            updateRoomRequest.getMaintenanceEnd().toString()
+            maintenanceRequest.getMaintenanceStart().toString(), 
+            maintenanceRequest.getMaintenanceEnd().toString()
         );
         
         if (hasConflict) {
             baseResponseDTO.setStatus(HttpStatus.BAD_REQUEST.value());
-            baseResponseDTO.setMessage("❌ Konfirmasi: Tidak dapat menjadwalkan perbaikan. Sudah ada booking pada tanggal tersebut");
+            baseResponseDTO.setMessage("❌ Konfirmasi: Tidak dapat menjadwalkan perbaikan. " +
+                                     "Sudah ada booking aktif pada tanggal tersebut");
             baseResponseDTO.setTimestamp(new Date());
             return new ResponseEntity<>(baseResponseDTO, HttpStatus.BAD_REQUEST);
         }
         
-        // ✅ Set availability status ke 0 (tidak tersedia) saat maintenance
-        updateRoomRequest.setAvailabilityStatus(0);
+        // ✅ Build UpdateRoomRequestDTO untuk update maintenance
+        UpdateRoomRequestDTO updateRoomRequest = UpdateRoomRequestDTO.builder()
+                .roomID(maintenanceRequest.getRoomID())
+                .availabilityStatus(0) // Set unavailable saat maintenance
+                .maintenanceStart(maintenanceRequest.getMaintenanceStart())
+                .maintenanceEnd(maintenanceRequest.getMaintenanceEnd())
+                .build();
         
         // ✅ Update room dengan maintenance schedule baru (akan replace yang lama)
         RoomResponseDTO updatedRoom = roomRestService.updateRoom(
@@ -584,10 +596,16 @@ public ResponseEntity<BaseResponseDTO<RoomResponseDTO>> addMaintenanceSchedule(
             updateRoomRequest
         );
         
+        // ✅ Buat message yang informatif
+        String message = hasExistingMaintenance 
+            ? "✅ Konfirmasi: Jadwal perbaikan untuk kamar " + updatedRoom.getName() + 
+              " berhasil diperbarui (mengganti jadwal sebelumnya)"
+            : "✅ Konfirmasi: Jadwal perbaikan untuk kamar " + updatedRoom.getName() + 
+              " berhasil ditambahkan";
+        
         baseResponseDTO.setStatus(HttpStatus.OK.value());
         baseResponseDTO.setData(updatedRoom);
-        baseResponseDTO.setMessage("✅ Konfirmasi: Jadwal perbaikan untuk kamar " + 
-                                  updatedRoom.getName() + " berhasil ditambahkan");
+        baseResponseDTO.setMessage(message);
         baseResponseDTO.setTimestamp(new Date());
         return new ResponseEntity<>(baseResponseDTO, HttpStatus.OK);
         
@@ -603,5 +621,5 @@ public ResponseEntity<BaseResponseDTO<RoomResponseDTO>> addMaintenanceSchedule(
         baseResponseDTO.setTimestamp(new Date());
         return new ResponseEntity<>(baseResponseDTO, HttpStatus.INTERNAL_SERVER_ERROR);
     }
-    }
+}
 }

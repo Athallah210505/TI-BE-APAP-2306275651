@@ -282,19 +282,14 @@ public PropertyResponseDTO getPropertyById(String id) {
     // ✅ Fetch room types untuk property ini
     List<RoomTypeResponseDTO> roomTypes = roomTypeRestService.getRoomTypesByProperty(id);
     
-    // ✅ Build room type info dengan rooms
+    // ✅ Build room type info dengan FULL room objects (not just IDs)
     List<RoomTypeInfoDTO> roomTypeInfoList = new ArrayList<>();
     
     for (RoomTypeResponseDTO roomType : roomTypes) {
-        // Get rooms untuk room type ini
+        // ✅ Get FULL room objects untuk room type ini (with maintenance data)
         List<RoomResponseDTO> rooms = roomRestService.getRoomsByRoomType(roomType.getRoomTypeID());
         
-        // Extract room IDs
-        List<String> roomIDs = rooms.stream()
-                .map(RoomResponseDTO::getRoomID)
-                .collect(Collectors.toList());
-        
-        // Build room type info
+        // ✅ Build room type info with FULL room objects
         RoomTypeInfoDTO roomTypeInfo = RoomTypeInfoDTO.builder()
                 .roomTypeID(roomType.getRoomTypeID())
                 .roomTypeName(roomType.getName())
@@ -303,7 +298,9 @@ public PropertyResponseDTO getPropertyById(String id) {
                 .price(roomType.getPrice())
                 .facility(roomType.getFacility())
                 .description(roomType.getDescription())
-                .roomIDs(roomIDs)
+                .listRoom(rooms)  // ✅ Send full room objects instead of roomIDs
+                .createdDate(roomType.getCreatedDate())
+                .updatedDate(roomType.getUpdatedDate())
                 .build();
         
         roomTypeInfoList.add(roomTypeInfo);

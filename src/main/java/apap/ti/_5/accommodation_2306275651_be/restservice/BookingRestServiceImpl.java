@@ -11,9 +11,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import apap.ti._5.accommodation_2306275651_be.model.AccommodationBooking;
+import apap.ti._5.accommodation_2306275651_be.model.Booking;
 import apap.ti._5.accommodation_2306275651_be.model.Room;
-import apap.ti._5.accommodation_2306275651_be.repository.AccommodationBookingRepository;
+import apap.ti._5.accommodation_2306275651_be.repository.BookingRepository;
 import apap.ti._5.accommodation_2306275651_be.repository.PropertyRepository;
 import apap.ti._5.accommodation_2306275651_be.repository.RoomRepository;
 import apap.ti._5.accommodation_2306275651_be.restdto.request.booking.CreateBookingRequestDTO;
@@ -26,7 +26,7 @@ import apap.ti._5.accommodation_2306275651_be.restdto.response.booking.BookingRe
 public class BookingRestServiceImpl implements BookingRestService {
     
     @Autowired
-    private AccommodationBookingRepository bookingRepository;
+    private BookingRepository bookingRepository;
     
     @Autowired
     private RoomRepository roomRepository;
@@ -34,18 +34,35 @@ public class BookingRestServiceImpl implements BookingRestService {
     @Autowired
     private PropertyRepository propertyRepository;
 
-    @Override
+   @Override
 public BookingResponseDTO createBooking(CreateBookingRequestDTO dto) {
-    // Validate dates
+    // ✅ Validate dates
     if (dto.getCheckOutDate().isBefore(dto.getCheckInDate()) || 
         dto.getCheckOutDate().isEqual(dto.getCheckInDate())) {
         throw new RuntimeException("Check-out date must be at least 1 day after check-in date");
     }
     
-    // Calculate total days
-    long totalDays = Duration.between(dto.getCheckInDate(), dto.getCheckOutDate()).toDays();
+    // ✅ Calculate total days (PENTING: gunakan between untuk date, bukan datetime!)
+    LocalDateTime checkIn = dto.getCheckInDate();
+    LocalDateTime checkOut = dto.getCheckOutDate();
     
-    // ✅ Get Room dari roomID
+    // ✅ FIX: Hitung selisih hari dengan benar (gunakan toLocalDate untuk akurat)
+    long totalDays = java.time.temporal.ChronoUnit.DAYS.between(
+        checkIn.toLocalDate(), 
+        checkOut.toLocalDate()
+    );
+    
+    // ✅ Pastikan minimal 1 hari
+    if (totalDays < 1) {
+        totalDays = 1;
+    }
+    
+    System.out.println("📅 Calculating booking duration:");
+    System.out.println("   Check-in: " + checkIn);
+    System.out.println("   Check-out: " + checkOut);
+    System.out.println("   Total Days: " + totalDays);
+    
+    // ✅ Get Room entity
     Room room = null;
     if (dto.getRoomID() != null && !dto.getRoomID().isEmpty()) {
         room = roomRepository.findById(dto.getRoomID())
@@ -60,45 +77,56 @@ public BookingResponseDTO createBooking(CreateBookingRequestDTO dto) {
                                   ") exceeds room capacity (" + room.getRoomType().getCapacity() + ")");
     }
     
-    // ✅ Generate Booking ID dari Room ID
-    // Format: BOOK-{7 digit terakhir roomID}-{datetime}
-    // Contoh roomID: APT-0000-004-101 → BOOK-004-101-2025-10-24-10:38:12
+    // ✅ Generate Booking ID
     String bookingID = generateBookingID(room.getRoomID());
     
-    // ✅ Calculate total price (base price + breakfast addon)
-    int totalPrice = 0;
-    if (room.getRoomType() != null) {
-        int basePrice = room.getRoomType().getPrice() * (int) totalDays;
-        int breakfastPrice = (dto.getIsBreakfast() != null && dto.getIsBreakfast()) 
-            ? 50000 * (int) totalDays 
-            : 0;
-        totalPrice = basePrice + breakfastPrice;
-    }
+    // ✅ FIX: Calculate price PER NIGHT * totalDays
+    int basePrice = room.getRoomType().getPrice(); // Price PER NIGHT
+    int breakfastPrice = (dto.getIsBreakfast() != null && dto.getIsBreakfast()) ? 50000 : 0; // Per night
     
-    // Manual conversion DTO to Entity
-    AccommodationBooking booking = AccommodationBooking.builder()
+    // ✅ Total price = (base + breakfast) * total days
+    int totalPrice = (int) ((basePrice + breakfastPrice) * totalDays);
+    
+    System.out.println("💰 Calculating booking price:");
+    System.out.println("   Base Price: Rp " + basePrice + " per night");
+    System.out.println("   Breakfast: Rp " + breakfastPrice + " per night");
+    System.out.println("   Total Days: " + totalDays + " nights");
+    System.out.println("   Total Price: Rp " + totalPrice + " (= (Rp " + basePrice + " + Rp " + breakfastPrice + ") × " + totalDays + ")");
+    
+    // ✅ Parse customerID String ke UUID
+    UUID customerUUID = UUID.fromString(dto.getCustomerID());
+    
+    // ✅ Build Booking entity
+    Booking booking = Booking.builder()
             .bookingID(bookingID)
             .checkInDate(dto.getCheckInDate())
             .checkOutDate(dto.getCheckOutDate())
             .totalDays((int) totalDays)
             .totalPrice(totalPrice)
-            .status(0) // Default: Waiting for Payment
-            .customerID(UUID.fromString(dto.getCustomerID()))
+            .status(0) // 0 = Waiting for Payment
+            .customerID(customerUUID)
             .customerName(dto.getCustomerName())
             .customerEmail(dto.getCustomerEmail())
             .customerPhone(dto.getCustomerPhone())
             .isBreakfast(dto.getIsBreakfast() != null ? dto.getIsBreakfast() : false)
+            .capacity(dto.getCapacity())
             .refund(0)
             .extraPay(0)
-            .capacity(dto.getCapacity())
-            .createdDate(LocalDateTime.now())
-            .updatedDate(LocalDateTime.now())
+            .room(room)
             .build();
     
-    AccommodationBooking savedBooking = bookingRepository.save(booking);
+    // ✅ Save booking
+    Booking savedBooking = bookingRepository.save(booking);
+    
+    System.out.println("✅ Booking created:");
+    System.out.println("   Booking ID: " + savedBooking.getBookingID());
+    System.out.println("   Room ID: " + savedBooking.getRoom().getRoomID());
+    System.out.println("   Customer: " + savedBooking.getCustomerName());
+    System.out.println("   Total Days: " + savedBooking.getTotalDays());
+    System.out.println("   Total Price: Rp " + savedBooking.getTotalPrice());
+    
     return convertToResponseDTO(savedBooking);
 }
-
 // ✅ Helper method untuk generate Booking ID dari Room ID
 private String generateBookingID(String roomID) {
     if (roomID == null || roomID.isEmpty()) {
@@ -141,7 +169,7 @@ private String generateBookingID(String roomID) {
     // ✅ TAMBAHKAN METHOD INI (yang missing)
     @Override
     public BookingResponseDTO getBookingById(String bookingID) {
-        AccommodationBooking booking = bookingRepository.findById(bookingID)
+        Booking booking = bookingRepository.findById(bookingID)
                 .orElseThrow(() -> new RuntimeException("Booking not found with id: " + bookingID));
         return convertToResponseDTO(booking);
     }
@@ -171,7 +199,7 @@ private String generateBookingID(String roomID) {
 
     @Override
 public BookingResponseDTO updateBooking(String bookingID, UpdateBookingRequestDTO dto) {
-    AccommodationBooking booking = bookingRepository.findById(bookingID)
+    Booking booking = bookingRepository.findById(bookingID)
             .orElseThrow(() -> new RuntimeException("Booking not found with id: " + bookingID));
     
     // Validate dates
@@ -227,13 +255,13 @@ public BookingResponseDTO updateBooking(String bookingID, UpdateBookingRequestDT
         booking.setExtraPay(dto.getExtraPay());
     }
     
-    AccommodationBooking updatedBooking = bookingRepository.save(booking);
+    Booking updatedBooking = bookingRepository.save(booking);
     return convertToResponseDTO(updatedBooking);
 }
 
     @Override
     public BookingResponseDTO updateBookingStatus(String bookingID, UpdateBookingStatusRequestDTO dto) {
-        AccommodationBooking booking = bookingRepository.findById(bookingID)
+        Booking booking = bookingRepository.findById(bookingID)
                 .orElseThrow(() -> new RuntimeException("Booking not found with id: " + bookingID));
         
         // Update status
@@ -247,7 +275,7 @@ public BookingResponseDTO updateBooking(String bookingID, UpdateBookingRequestDT
             booking.setExtraPay(dto.getExtraPay());
         }
         
-        AccommodationBooking updatedBooking = bookingRepository.save(booking);
+        Booking updatedBooking = bookingRepository.save(booking);
         return convertToResponseDTO(updatedBooking);
     }
 
@@ -265,9 +293,9 @@ public BookingResponseDTO updateBooking(String bookingID, UpdateBookingRequestDT
         LocalDateTime now = LocalDateTime.now();
         
         // ✅ Ambil semua bookings
-        List<AccommodationBooking> allBookings = bookingRepository.findAll();
+        List<Booking> allBookings = bookingRepository.findAll();
         
-        for (AccommodationBooking booking : allBookings) {
+        for (Booking booking : allBookings) {
             // ✅ Rule 1: Status 1 (Confirmed) → 4 (Done) jika sudah check-in
             if (booking.getStatus() == 1 && booking.getCheckInDate().isBefore(now)) {
                 booking.setStatus(4); // Done
@@ -305,7 +333,7 @@ public BookingResponseDTO updateBooking(String bookingID, UpdateBookingRequestDT
 
       @Override
     public BookingResponseDTO confirmPayment(String bookingID, UpdateBookingStatusRequestDTO dto) {
-        AccommodationBooking booking = bookingRepository.findById(bookingID)
+        Booking booking = bookingRepository.findById(bookingID)
                 .orElseThrow(() -> new RuntimeException("Booking not found with id: " + bookingID));
         
         // ✅ Validasi: Hanya booking dengan status 0 (Waiting for Payment) yang bisa confirm payment
@@ -329,13 +357,13 @@ public BookingResponseDTO updateBooking(String bookingID, UpdateBookingRequestDT
         // ✅ Update property income
         updatePropertyIncome(booking, incomeToAdd);
         
-        AccommodationBooking updatedBooking = bookingRepository.save(booking);
+        Booking updatedBooking = bookingRepository.save(booking);
         return convertToResponseDTO(updatedBooking);
     }
 
     @Override
     public BookingResponseDTO cancelBooking(String bookingID, UpdateBookingStatusRequestDTO dto) {
-        AccommodationBooking booking = bookingRepository.findById(bookingID)
+        Booking booking = bookingRepository.findById(bookingID)
                 .orElseThrow(() -> new RuntimeException("Booking not found with id: " + bookingID));
         
         // ✅ Validasi: Hanya booking dengan status 0, 1, 3 yang bisa cancel
@@ -366,13 +394,13 @@ public BookingResponseDTO updateBooking(String bookingID, UpdateBookingRequestDT
         }
         // Status 0 tanpa extra pay: tidak ada perubahan income
         
-        AccommodationBooking updatedBooking = bookingRepository.save(booking);
+        Booking updatedBooking = bookingRepository.save(booking);
         return convertToResponseDTO(updatedBooking);
     }
 
     @Override
     public BookingResponseDTO requestRefund(String bookingID, UpdateBookingStatusRequestDTO dto) {
-        AccommodationBooking booking = bookingRepository.findById(bookingID)
+        Booking booking = bookingRepository.findById(bookingID)
                 .orElseThrow(() -> new RuntimeException("Booking not found with id: " + bookingID));
         
         // ✅ Validasi: Hanya booking dengan status 1 (Payment Confirmed) yang bisa request refund
@@ -398,15 +426,15 @@ public BookingResponseDTO updateBooking(String bookingID, UpdateBookingRequestDT
         // ✅ Kurangi property income sejumlah refund
         updatePropertyIncome(booking, -dto.getRefund());
         
-        AccommodationBooking updatedBooking = bookingRepository.save(booking);
+        Booking updatedBooking = bookingRepository.save(booking);
         return convertToResponseDTO(updatedBooking);
     }
 
     
     // ✅ Helper method untuk update property income
-    private void updatePropertyIncome(AccommodationBooking booking, int incomeChange) {
+    private void updatePropertyIncome(Booking booking, int incomeChange) {
         // TODO: Implement setelah relasi Booking-Room selesai
-        // Saat ini skip karena belum ada relasi Room di AccommodationBooking
+        // Saat ini skip karena belum ada relasi Room di Booking
         
         // Contoh implementasi jika sudah ada relasi:
         /*
@@ -422,46 +450,43 @@ public BookingResponseDTO updateBooking(String bookingID, UpdateBookingRequestDT
         */
     }
 
-    // ✅ Helper method untuk konversi Entity -> DTO
-    private BookingResponseDTO convertToResponseDTO(AccommodationBooking booking) {
-        // TODO: Get propertyName & roomName dari relasi (setelah ada relasi Room)
-        String propertyName = null;
-        String roomName = null;
+    private BookingResponseDTO convertToResponseDTO(Booking booking) {
+    // ✅ Get property name dari room -> roomType -> property
+    String propertyName = "";
+    String roomName = "";
+    
+    if (booking.getRoom() != null) {
+        roomName = booking.getRoom().getName();
         
-        // Contoh jika sudah ada relasi:
-        /*
-        if (booking.getRoom() != null) {
-            Room room = booking.getRoom();
-            roomName = room.getName();
-            
-            if (room.getRoomType() != null && room.getRoomType().getProperty() != null) {
-                propertyName = room.getRoomType().getProperty().getPropertyName();
-            }
+        if (booking.getRoom().getRoomType() != null && 
+            booking.getRoom().getRoomType().getProperty() != null) {
+            propertyName = booking.getRoom().getRoomType().getProperty().getPropertyName();
         }
-        */
-        
-        return BookingResponseDTO.builder()
-                .bookingID(booking.getBookingID())
-                .checkInDate(booking.getCheckInDate())
-                .checkOutDate(booking.getCheckOutDate())
-                .totalDays(booking.getTotalDays())
-                .totalPrice(booking.getTotalPrice())
-                .status(booking.getStatus())
-                .statusName(getStatusName(booking.getStatus()))
-                .customerID(booking.getCustomerID().toString())
-                .customerName(booking.getCustomerName())
-                .customerEmail(booking.getCustomerEmail())
-                .customerPhone(booking.getCustomerPhone())
-                .isBreakfast(booking.isBreakfast())
-                .refund(booking.getRefund())
-                .extraPay(booking.getExtraPay())
-                .capacity(booking.getCapacity())
-                .propertyName(propertyName)
-                .roomName(roomName)
-                .createdDate(booking.getCreatedDate())
-                .updatedDate(booking.getUpdatedDate())
-                .build();
     }
+    
+    return BookingResponseDTO.builder()
+            .bookingID(booking.getBookingID())
+            .checkInDate(booking.getCheckInDate())
+            .checkOutDate(booking.getCheckOutDate())
+            .totalDays(booking.getTotalDays())
+            .totalPrice(booking.getTotalPrice())
+            .status(booking.getStatus())
+            .statusName(getStatusName(booking.getStatus()))
+            .customerID(booking.getCustomerID().toString())
+            .customerName(booking.getCustomerName())
+            .customerEmail(booking.getCustomerEmail())
+            .customerPhone(booking.getCustomerPhone())
+            .isBreakfast(booking.isBreakfast())
+            .refund(booking.getRefund())
+            .extraPay(booking.getExtraPay())
+            .capacity(booking.getCapacity())
+            .propertyName(propertyName)
+            .roomName(roomName)
+            .roomID(booking.getRoom() != null ? booking.getRoom().getRoomID() : null) // ✅ Tambahkan roomID
+            .createdDate(booking.getCreatedDate())
+            .updatedDate(booking.getUpdatedDate())
+            .build();
+}
 
 
     @Override
