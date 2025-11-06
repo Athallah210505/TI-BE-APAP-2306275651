@@ -156,7 +156,7 @@ public BookingResponseDTO createBooking(CreateBookingRequestDTO dto) {
         System.out.println("   Exclude Booking ID: " + (excludeBookingID != null ? excludeBookingID : "none"));
         
         try {
-            // ✅ Get active bookings (status 0 & 1) untuk room ini
+            //  Get active bookings (status 0 & 1) untuk room ini
             List<Booking> activeBookings = bookingRepository.findByRoom_RoomIDAndStatus(roomID, 0);
             activeBookings.addAll(bookingRepository.findByRoom_RoomIDAndStatus(roomID, 1));
             
@@ -166,7 +166,7 @@ public BookingResponseDTO createBooking(CreateBookingRequestDTO dto) {
             List<Booking> conflicts = activeBookings.stream()
                 .filter(b -> excludeBookingID == null || !b.getBookingID().equals(excludeBookingID))
                 .filter(b -> {
-                    // ✅ CRITICAL: Check if booking dates overlap
+                    // CRITICAL: Check if booking dates overlap
                     // Overlap occurs if:
                     // (new_checkin < existing_checkout) AND (new_checkout > existing_checkin)
                     boolean overlaps = checkInDate.isBefore(b.getCheckOutDate()) && 
