@@ -18,5 +18,6 @@ public interface RoomRestService {
     boolean hasBookingConflict(String roomID, String startDate, String endDate);
     List<RoomResponseDTO> getRoomsByPropertyAndFloor(String propertyID, Integer floor);
     Room getRoomEntityById(String roomID);
+    void autoUpdateRoomMaintenanceStatus();
     
 }

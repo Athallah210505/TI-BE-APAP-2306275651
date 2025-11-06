@@ -5,6 +5,7 @@ import apap.ti._5.accommodation_2306275651_be.restdto.request.booking.CreateBook
 import apap.ti._5.accommodation_2306275651_be.restdto.request.booking.UpdateBookingRequestDTO;
 import apap.ti._5.accommodation_2306275651_be.restdto.request.booking.UpdateBookingStatusRequestDTO;
 import apap.ti._5.accommodation_2306275651_be.restdto.response.BaseResponseDTO;
+import apap.ti._5.accommodation_2306275651_be.restdto.response.booking.BookingChartResponseDTO;
 import apap.ti._5.accommodation_2306275651_be.restdto.response.booking.BookingResponseDTO;
 import apap.ti._5.accommodation_2306275651_be.restdto.response.room.RoomResponseDTO;
 import apap.ti._5.accommodation_2306275651_be.restservice.BookingRestService;
@@ -46,6 +47,8 @@ public class BookingRestController {
     public static final String PAY_BOOKING = BASE_URL + "/status/pay";
     public static final String CANCEL_BOOKING = BASE_URL + "/status/cancel";
     public static final String REFUND_BOOKING = BASE_URL + "/status/refund";
+    public static final String CHART_BOOKING = BASE_URL + "/chart";
+
     
     
     // ✅ GET Form Create Booking WITH Room (prefilled)
@@ -123,85 +126,86 @@ public class BookingRestController {
         }
         
         try {
-            // ✅ Validasi: Check-out harus setelah check-in
-            if (request.getCheckOutDate().isBefore(request.getCheckInDate()) ||
-                request.getCheckOutDate().isEqual(request.getCheckInDate())) {
+        // ✅ Validasi: Cek room availability & capacity
+        if (request.getRoomID() != null && !request.getRoomID().isEmpty()) {
+            RoomResponseDTO room = roomRestService.getRoomById(request.getRoomID());
+            
+            if (room == null) {
+                baseResponseDTO.setStatus(HttpStatus.NOT_FOUND.value());
+                baseResponseDTO.setMessage("❌ Konfirmasi: Kamar tidak ditemukan");
+                baseResponseDTO.setTimestamp(new Date());
+                return new ResponseEntity<>(baseResponseDTO, HttpStatus.NOT_FOUND);
+            }
+            
+            // ✅ Check capacity
+            if (request.getCapacity() > room.getCapacity()) {
                 baseResponseDTO.setStatus(HttpStatus.BAD_REQUEST.value());
-                baseResponseDTO.setMessage("❌ Konfirmasi: Tanggal check-out harus minimal 1 hari setelah check-in");
+                baseResponseDTO.setMessage("❌ Konfirmasi: Kapasitas tamu (" + request.getCapacity() + 
+                                          ") melebihi kapasitas kamar (" + room.getCapacity() + ")");
                 baseResponseDTO.setTimestamp(new Date());
                 return new ResponseEntity<>(baseResponseDTO, HttpStatus.BAD_REQUEST);
             }
             
-            // ✅ Validasi: Check-in minimal hari ini
-            if (request.getCheckInDate().isBefore(LocalDateTime.now())) {
-                baseResponseDTO.setStatus(HttpStatus.BAD_REQUEST.value());
-                baseResponseDTO.setMessage("❌ Konfirmasi: Tanggal check-in tidak boleh di masa lalu");
-                baseResponseDTO.setTimestamp(new Date());
-                return new ResponseEntity<>(baseResponseDTO, HttpStatus.BAD_REQUEST);
-            }
+            // ✅ FIX: Check maintenance schedule PERTAMA
+            System.out.println("🔍 Checking maintenance conflict:");
+            System.out.println("   Room: " + room.getRoomID());
+            System.out.println("   Booking: " + request.getCheckInDate() + " - " + request.getCheckOutDate());
+            System.out.println("   Maintenance: " + room.getMaintenanceStart() + " - " + room.getMaintenanceEnd());
             
-            // ✅ Validasi: Cek room availability & capacity
-            if (request.getRoomID() != null && !request.getRoomID().isEmpty()) {
-                RoomResponseDTO room = roomRestService.getRoomById(request.getRoomID());
-                
-                if (room == null) {
-                    baseResponseDTO.setStatus(HttpStatus.NOT_FOUND.value());
-                    baseResponseDTO.setMessage("❌ Konfirmasi: Kamar tidak ditemukan");
-                    baseResponseDTO.setTimestamp(new Date());
-                    return new ResponseEntity<>(baseResponseDTO, HttpStatus.NOT_FOUND);
-                }
-                
-                // ✅ Check capacity
-                if (request.getCapacity() > room.getCapacity()) {
-                    baseResponseDTO.setStatus(HttpStatus.BAD_REQUEST.value());
-                    baseResponseDTO.setMessage("❌ Konfirmasi: Kapasitas tamu (" + request.getCapacity() + 
-                                              ") melebihi kapasitas kamar (" + room.getCapacity() + ")");
-                    baseResponseDTO.setTimestamp(new Date());
-                    return new ResponseEntity<>(baseResponseDTO, HttpStatus.BAD_REQUEST);
-                }
-                
-                // ✅ Check booking conflict
-                boolean hasConflict = roomRestService.hasBookingConflict(
-                    request.getRoomID(),
-                    request.getCheckInDate().toString(),
-                    request.getCheckOutDate().toString()
+            if (room.getMaintenanceStart() != null && room.getMaintenanceEnd() != null) {
+                // Check if booking period overlaps with maintenance period
+                boolean overlapsWithMaintenance = !(
+                    request.getCheckOutDate().isBefore(room.getMaintenanceStart()) ||
+                    request.getCheckInDate().isAfter(room.getMaintenanceEnd())
                 );
                 
-                if (hasConflict) {
+                System.out.println("   Overlap check result: " + overlapsWithMaintenance);
+                
+                if (overlapsWithMaintenance) {
+                    System.out.println("   ❌ CONFLICT DETECTED!");
                     baseResponseDTO.setStatus(HttpStatus.BAD_REQUEST.value());
-                    baseResponseDTO.setMessage("❌ Konfirmasi: Kamar sudah dibooking atau sedang maintenance pada tanggal tersebut");
+                    baseResponseDTO.setMessage("❌ Konfirmasi: Kamar sedang dalam jadwal maintenance pada tanggal tersebut. " +
+                                             "Maintenance: " + room.getMaintenanceStart() + " - " + room.getMaintenanceEnd());
                     baseResponseDTO.setTimestamp(new Date());
                     return new ResponseEntity<>(baseResponseDTO, HttpStatus.BAD_REQUEST);
                 }
                 
-                // ✅ Check maintenance schedule
-                if (room.getMaintenanceStart() != null && room.getMaintenanceEnd() != null) {
-                    if (!(request.getCheckOutDate().isBefore(room.getMaintenanceStart()) ||
-                          request.getCheckInDate().isAfter(room.getMaintenanceEnd()))) {
-                        baseResponseDTO.setStatus(HttpStatus.BAD_REQUEST.value());
-                        baseResponseDTO.setMessage("❌ Konfirmasi: Kamar sedang dalam jadwal maintenance pada tanggal tersebut");
-                        baseResponseDTO.setTimestamp(new Date());
-                        return new ResponseEntity<>(baseResponseDTO, HttpStatus.BAD_REQUEST);
-                    }
-                }
+                System.out.println("   ✅ No conflict with maintenance");
+            } else {
+                System.out.println("   ℹ️ No maintenance scheduled for this room");
             }
             
-            // ✅ Create booking
-            BookingResponseDTO response = bookingRestService.createBooking(request);
+            // ✅ Check booking conflict (setelah maintenance check)
+            boolean hasConflict = roomRestService.hasBookingConflict(
+                request.getRoomID(),
+                request.getCheckInDate().toString(),
+                request.getCheckOutDate().toString()
+            );
             
-            baseResponseDTO.setStatus(HttpStatus.CREATED.value());
-            baseResponseDTO.setData(response);
-            baseResponseDTO.setMessage("✅ Konfirmasi: Booking berhasil dibuat dengan ID " + response.getBookingID());
-            baseResponseDTO.setTimestamp(new Date());
-            return new ResponseEntity<>(baseResponseDTO, HttpStatus.CREATED);
-            
-        } catch (Exception ex) {
-            baseResponseDTO.setStatus(HttpStatus.INTERNAL_SERVER_ERROR.value());
-            baseResponseDTO.setMessage("❌ Konfirmasi: Gagal membuat booking. Error: " + ex.getMessage());
-            baseResponseDTO.setTimestamp(new Date());
-            return new ResponseEntity<>(baseResponseDTO, HttpStatus.INTERNAL_SERVER_ERROR);
+            if (hasConflict) {
+                baseResponseDTO.setStatus(HttpStatus.BAD_REQUEST.value());
+                baseResponseDTO.setMessage("❌ Konfirmasi: Kamar sudah dibooking pada tanggal tersebut");
+                baseResponseDTO.setTimestamp(new Date());
+                return new ResponseEntity<>(baseResponseDTO, HttpStatus.BAD_REQUEST);
+            }
         }
+        
+        // ✅ Create booking
+        BookingResponseDTO response = bookingRestService.createBooking(request);
+        
+        baseResponseDTO.setStatus(HttpStatus.CREATED.value());
+        baseResponseDTO.setData(response);
+        baseResponseDTO.setMessage("✅ Konfirmasi: Data Booking Berhasil Dibuat");
+        baseResponseDTO.setTimestamp(new Date());
+        return new ResponseEntity<>(baseResponseDTO, HttpStatus.CREATED);
+        
+    } catch (Exception ex) {
+        baseResponseDTO.setStatus(HttpStatus.INTERNAL_SERVER_ERROR.value());
+        baseResponseDTO.setMessage("❌ Terjadi kesalahan: " + ex.getMessage());
+        baseResponseDTO.setTimestamp(new Date());
+        return new ResponseEntity<>(baseResponseDTO, HttpStatus.INTERNAL_SERVER_ERROR);
     }
+}
     
     @GetMapping(VIEW_BOOKING)
     public ResponseEntity<BaseResponseDTO<BookingResponseDTO>> getBooking(@PathVariable String id) {
@@ -241,6 +245,7 @@ public class BookingRestController {
         try {
             // ✅ Auto-update status SEBELUM fetch data
             bookingRestService.autoUpdateBookingStatuses();
+            roomRestService.autoUpdateRoomMaintenanceStatus();
             
             // ✅ Fetch all bookings
             List<BookingResponseDTO> bookings = bookingRestService.getAllBookings();
@@ -639,44 +644,106 @@ public ResponseEntity<BaseResponseDTO<BookingResponseDTO>> updateBooking(
         }
     }
     
-    // ✅ POST Refund Booking
     @PostMapping(REFUND_BOOKING)
-    public ResponseEntity<BaseResponseDTO<BookingResponseDTO>> refundBooking(
-            @Valid @RequestBody UpdateBookingStatusRequestDTO request,
-            BindingResult bindingResult) {
-        
-        var baseResponseDTO = new BaseResponseDTO<BookingResponseDTO>();
-        
-        if (bindingResult.hasFieldErrors()) {
-            StringBuilder errorMessages = new StringBuilder();
-            List<FieldError> errors = bindingResult.getFieldErrors();
-            for (FieldError error : errors) {
-                errorMessages.append(error.getDefaultMessage()).append("; ");
-            }
-            
+public ResponseEntity<BaseResponseDTO<BookingResponseDTO>> processRefund(
+        @RequestBody UpdateBookingStatusRequestDTO request) {
+    
+    var baseResponseDTO = new BaseResponseDTO<BookingResponseDTO>();
+    
+    try {
+        if (request.getBookingID() == null || request.getBookingID().isEmpty()) {
             baseResponseDTO.setStatus(HttpStatus.BAD_REQUEST.value());
-            baseResponseDTO.setMessage(errorMessages.toString());
+            baseResponseDTO.setMessage("❌ Konfirmasi: Booking ID wajib diisi");
             baseResponseDTO.setTimestamp(new Date());
             return new ResponseEntity<>(baseResponseDTO, HttpStatus.BAD_REQUEST);
         }
         
-        try {
-            BookingResponseDTO response = bookingRestService.requestRefund(
-                request.getBookingID(), 
-                request
-            );
-            
-            baseResponseDTO.setStatus(HttpStatus.OK.value());
-            baseResponseDTO.setData(response);
-            baseResponseDTO.setMessage("✅ Konfirmasi: Refund berhasil diproses");
+        BookingResponseDTO booking = bookingRestService.getBookingById(request.getBookingID());
+        
+        if (booking == null) {
+            baseResponseDTO.setStatus(HttpStatus.NOT_FOUND.value());
+            baseResponseDTO.setMessage("❌ Konfirmasi: Booking tidak ditemukan");
             baseResponseDTO.setTimestamp(new Date());
-            return new ResponseEntity<>(baseResponseDTO, HttpStatus.OK);
-            
-        } catch (Exception ex) {
-            baseResponseDTO.setStatus(HttpStatus.INTERNAL_SERVER_ERROR.value());
-            baseResponseDTO.setMessage("❌ Konfirmasi: Gagal memproses refund. Error: " + ex.getMessage());
-            baseResponseDTO.setTimestamp(new Date());
-            return new ResponseEntity<>(baseResponseDTO, HttpStatus.INTERNAL_SERVER_ERROR);
+            return new ResponseEntity<>(baseResponseDTO, HttpStatus.NOT_FOUND);
         }
+        
+        if (booking.getStatus() != 3) {
+            baseResponseDTO.setStatus(HttpStatus.BAD_REQUEST.value());
+            baseResponseDTO.setMessage("❌ Konfirmasi: Hanya booking dengan status 'Request Refund' yang dapat diproses refund");
+            baseResponseDTO.setTimestamp(new Date());
+            return new ResponseEntity<>(baseResponseDTO, HttpStatus.BAD_REQUEST);
+        }
+        
+        BookingResponseDTO response = bookingRestService.processRefund(request.getBookingID(), request);
+        
+        baseResponseDTO.setStatus(HttpStatus.OK.value());
+        baseResponseDTO.setData(response);
+        baseResponseDTO.setMessage("✅ Konfirmasi: Refund berhasil diproses sebesar Rp " + booking.getRefund());
+        baseResponseDTO.setTimestamp(new Date());
+        return new ResponseEntity<>(baseResponseDTO, HttpStatus.OK);
+        
+    } catch (Exception ex) {
+        baseResponseDTO.setStatus(HttpStatus.INTERNAL_SERVER_ERROR.value());
+        baseResponseDTO.setMessage("❌ Konfirmasi: " + ex.getMessage());
+        baseResponseDTO.setTimestamp(new Date());
+        return new ResponseEntity<>(baseResponseDTO, HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+}
+@GetMapping(CHART_BOOKING)
+public ResponseEntity<BaseResponseDTO<List<BookingChartResponseDTO>>> getBookingChart(
+        @RequestParam(required = false) Integer month,
+        @RequestParam(required = false) Integer year) {
+    
+    var baseResponseDTO = new BaseResponseDTO<List<BookingChartResponseDTO>>();
+    
+    try {
+        // ✅ Validate month (1-12)
+        if (month != null && (month < 1 || month > 12)) {
+            baseResponseDTO.setStatus(HttpStatus.BAD_REQUEST.value());
+            baseResponseDTO.setMessage("❌ Month must be between 1 and 12");
+            baseResponseDTO.setTimestamp(new Date());
+            return new ResponseEntity<>(baseResponseDTO, HttpStatus.BAD_REQUEST);
+        }
+        
+        // ✅ Validate year (reasonable range)
+        if (year != null && (year < 2000 || year > 2100)) {
+            baseResponseDTO.setStatus(HttpStatus.BAD_REQUEST.value());
+            baseResponseDTO.setMessage("❌ Year must be between 2000 and 2100");
+            baseResponseDTO.setTimestamp(new Date());
+            return new ResponseEntity<>(baseResponseDTO, HttpStatus.BAD_REQUEST);
+        }
+        
+        // ✅ Get chart data
+        List<BookingChartResponseDTO> chartData = bookingRestService.getBookingChartData(month, year);
+        
+        // ✅ Build success message
+        String periodText = "";
+        if (month != null && year != null) {
+            String[] monthNames = {"", "January", "February", "March", "April", "May", "June", 
+                                  "July", "August", "September", "October", "November", "December"};
+            periodText = monthNames[month] + " " + year;
+        } else if (year != null) {
+            periodText = "Year " + year;
+        } else if (month != null) {
+            String[] monthNames = {"", "January", "February", "March", "April", "May", "June", 
+                                  "July", "August", "September", "October", "November", "December"};
+            periodText = monthNames[month];
+        } else {
+            periodText = "All Time";
+        }
+        
+        baseResponseDTO.setStatus(HttpStatus.OK.value());
+        baseResponseDTO.setData(chartData);
+        baseResponseDTO.setMessage("✅ Property Income Statistics for " + periodText + 
+                                  " (" + chartData.size() + " properties)");
+        baseResponseDTO.setTimestamp(new Date());
+        return new ResponseEntity<>(baseResponseDTO, HttpStatus.OK);
+        
+    } catch (Exception ex) {
+        baseResponseDTO.setStatus(HttpStatus.INTERNAL_SERVER_ERROR.value());
+        baseResponseDTO.setMessage("❌ Error: " + ex.getMessage());
+        baseResponseDTO.setTimestamp(new Date());
+        return new ResponseEntity<>(baseResponseDTO, HttpStatus.INTERNAL_SERVER_ERROR);
+    }
     }
 }

@@ -14,6 +14,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import apap.ti._5.accommodation_2306275651_be.model.Property;
+import apap.ti._5.accommodation_2306275651_be.repository.BookingRepository;
 import apap.ti._5.accommodation_2306275651_be.repository.PropertyRepository;
 import apap.ti._5.accommodation_2306275651_be.restdto.request.property.CreatePropertyRequestDTO;
 import apap.ti._5.accommodation_2306275651_be.restdto.request.property.UpdatePropertyRequestDTO;
@@ -37,6 +38,9 @@ public class PropertyRestServiceImpl implements PropertyRestService {
     
     @Autowired
     private RoomRestService roomRestService;
+
+    @Autowired
+    private BookingRepository bookingRepository;
     
     @Override
     public PropertyResponseDTO createProperty(CreatePropertyRequestDTO createPropertyRequestDTO) {
@@ -171,13 +175,7 @@ public class PropertyRestServiceImpl implements PropertyRestService {
         return typePrefix + "-" + ownerSuffix + "-" + counter;
     }
     
-    // ✅ Helper method untuk generate room name sesuai format: propertyID-floorunit
-    private String generateRoomName(String propertyID, Integer floor, Integer unitNumber) {
-        // Format: propertyID-floorunit 
-        // Contoh: APT-0000-004-101 untuk lantai 1 unit 1
-        String floorUnit = String.format("%d%02d", floor, unitNumber);
-        return propertyID + "-" + floorUnit;
-    }
+    
     
     @Override
     public PropertyResponseDTO updateProperty(String id, UpdatePropertyRequestDTO updatePropertyRequestDTO) {
@@ -298,7 +296,7 @@ public PropertyResponseDTO getPropertyById(String id) {
                 .price(roomType.getPrice())
                 .facility(roomType.getFacility())
                 .description(roomType.getDescription())
-                .listRoom(rooms)  // ✅ Send full room objects instead of roomIDs
+                .listRoom(rooms)  
                 .createdDate(roomType.getCreatedDate())
                 .updatedDate(roomType.getUpdatedDate())
                 .build();
@@ -309,7 +307,7 @@ public PropertyResponseDTO getPropertyById(String id) {
     return convertToPropertyResponseDTO(property, roomTypeInfoList);
 }
     
-    @Override
+   @Override
     public PropertyResponseDTO deleteProperty(String id) {
         Optional<Property> propertyOpt = propertyRepository.findById(id);
         
@@ -318,10 +316,35 @@ public PropertyResponseDTO getPropertyById(String id) {
         }
         
         Property existingProperty = propertyOpt.get();
+        
+        // ✅ FIX: Cek apakah ada booking aktif (status 0 atau 1)
+        long activeBookingsCount = bookingRepository.countActiveBookingsByPropertyID(id);
+        
+        if (activeBookingsCount > 0) {
+            System.err.println("Cannot delete property:");
+            System.err.println("   Property ID: " + id);
+            System.err.println("   Active Bookings: " + activeBookingsCount);
+            
+            throw new RuntimeException(
+                "Tidak dapat menghapus property. " +
+                "Terdapat " + activeBookingsCount + " booking aktif pada property ini. " +
+                "Harap batalkan atau selesaikan booking terlebih dahulu."
+            );
+        }
+        
+        // ✅ Jika tidak ada booking aktif, lakukan soft delete
+        System.out.println("🗑️ Deleting property (soft delete):");
+        System.out.println("   Property ID: " + id);
+        System.out.println("   Property Name: " + existingProperty.getPropertyName());
+        System.out.println("   Active Bookings: 0");
+        
         existingProperty.setActiveStatus(0);
         existingProperty.setUpdatedDate(LocalDateTime.now());
         
         Property deletedProperty = propertyRepository.save(existingProperty);
+        
+        System.out.println("Property soft deleted successfully");
+        
         return convertToPropertyResponseDTO(deletedProperty, null);
     }
     

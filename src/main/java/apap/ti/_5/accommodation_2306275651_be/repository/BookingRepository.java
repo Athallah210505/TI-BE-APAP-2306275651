@@ -27,5 +27,23 @@ public interface BookingRepository extends JpaRepository<Booking, String> {
         @Param("endDate") LocalDateTime endDate
     );
 
+    @Query("SELECT b FROM Booking b " +
+           "JOIN b.room r " +
+           "JOIN r.roomType rt " +
+           "JOIN rt.property p " +
+           "WHERE p.propertyID = :propertyID " +
+           "AND b.status IN (0, 1)")
+    List<Booking> findActiveBookingsByPropertyID(@Param("propertyID") String propertyID);
+    
+    // ✅ Alternative: Count booking aktif
+    @Query("SELECT COUNT(b) FROM Booking b " +
+           "JOIN b.room r " +
+           "JOIN r.roomType rt " +
+           "JOIN rt.property p " +
+           "WHERE p.propertyID = :propertyID " +
+           "AND b.status IN (0, 1)")
+    long countActiveBookingsByPropertyID(@Param("propertyID") String propertyID);
+
+
     List<Booking> findByRoom_RoomIDAndStatus(String roomID, Integer status);
 }

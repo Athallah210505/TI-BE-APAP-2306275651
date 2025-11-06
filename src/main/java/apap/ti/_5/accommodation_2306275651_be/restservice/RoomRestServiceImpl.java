@@ -206,8 +206,8 @@ public RoomResponseDTO updateRoom(String roomID, UpdateRoomRequestDTO dto) {
     
     Integer unitNumber = existingRoomsOnFloor.size() + 1;
     
-    System.out.println("   📊 Total Existing Rooms: " + existingRoomsOnFloor.size());
-    System.out.println("   ➕ New Unit Number: " + unitNumber);
+    System.out.println("   Total Existing Rooms: " + existingRoomsOnFloor.size());
+    System.out.println("   New Unit Number: " + unitNumber);
     
     // ✅ Format: propertyID-floorunit
     String floorUnit = String.format("%d%02d", floor, unitNumber);
@@ -219,26 +219,58 @@ public RoomResponseDTO updateRoom(String roomID, UpdateRoomRequestDTO dto) {
     return roomID;
 }
 
-    // Helper method untuk konversi Entity -> DTO
+  private RoomResponseDTO convertToResponseDTO(Room room) {
+    // ✅ Extract HANYA nomor unit dari Room ID
+    String roomName = "";
+    String roomID = room.getRoomID();
     
-    public RoomResponseDTO convertToResponseDTO(Room room) {
+    if (roomID != null && roomID.contains("-")) {
+        String[] parts = roomID.split("-");
+        roomName = parts[parts.length - 1]; // ✅ Ambil bagian terakhir: "204"
+    } else {
+        roomName = roomID; // Fallback jika format tidak sesuai
+    }
+    
+    System.out.println("🏠 Converting room to DTO:");
+    System.out.println("   Full Room ID: " + roomID);
+    System.out.println("   Extracted Room Name: " + roomName);
+    
     return RoomResponseDTO.builder()
             .roomID(room.getRoomID())
-            .name(room.getName())
+            .name(roomName) // ✅ Set name = nomor unit saja
             .availabilityStatus(room.getAvailabilityStatus())
-            .availabilityStatusName(room.getAvailabilityStatus() == 1 ? "Available" : "Unavailable")
+            .availabilityStatusName(getAvailabilityStatusName(room.getAvailabilityStatus()))
             .activeRoom(room.getActiveRoom())
-            .activeRoomName(room.getActiveRoom() == 1 ? "Active" : "Inactive")
-            .maintenanceStart(room.getMaintenanceStart())  // ✅ Include
-            .maintenanceEnd(room.getMaintenanceEnd())      // ✅ Include
-            .capacity(room.getRoomType().getCapacity())
-            .price(room.getRoomType().getPrice())
-            .floor(room.getRoomType().getFloor())
-            .roomTypeID(room.getRoomType().getRoomTypeID())
-            .roomTypeName(room.getRoomType().getName())
+            .activeRoomName(getActiveRoomName(room.getActiveRoom()))
+            .maintenanceStart(room.getMaintenanceStart())
+            .maintenanceEnd(room.getMaintenanceEnd())
+            .capacity(room.getRoomType() != null ? room.getRoomType().getCapacity() : null)
+            .price(room.getRoomType() != null ? room.getRoomType().getPrice() : null)
+            .floor(room.getRoomType() != null ? room.getRoomType().getFloor() : null)
+            .roomTypeID(room.getRoomType() != null ? room.getRoomType().getRoomTypeID() : null)
+            .roomTypeName(room.getRoomType() != null ? room.getRoomType().getName() : null)
             .createdDate(room.getCreatedDate())
             .updatedDate(room.getUpdatedDate())
             .build();
+}
+
+// ✅ Helper methods untuk status names
+private String getAvailabilityStatusName(Integer status) {
+    if (status == null) return "Unknown";
+    return switch (status) {
+        case 0 -> "Unavailable";
+        case 1 -> "Available";
+        default -> "Unknown";
+    };
+}
+
+private String getActiveRoomName(Integer status) {
+    if (status == null) return "Unknown";
+    return switch (status) {
+        case 0 -> "Inactive";
+        case 1 -> "Active";
+        default -> "Unknown";
+    };
 }
   @Override
     public List<RoomResponseDTO> getRoomsByPropertyAndFloor(String propertyID, Integer floor) {
@@ -258,4 +290,40 @@ public RoomResponseDTO updateRoom(String roomID, UpdateRoomRequestDTO dto) {
             .map(this::convertToResponseDTO)  // ✅ BENAR - gunakan method yang ada
             .collect(Collectors.toList());
 }
+@Override
+    @Transactional
+    public void autoUpdateRoomMaintenanceStatus() {
+        LocalDateTime now = LocalDateTime.now();
+        
+        System.out.println("🔧 Auto-updating room maintenance status...");
+        System.out.println("   Current Time: " + now);
+        
+        List<Room> allRooms = roomRepository.findAll();
+        int updatedCount = 0;
+        
+        for (Room room : allRooms) {
+            // ✅ Cek apakah maintenance sudah selesai
+            if (room.getMaintenanceEnd() != null && room.getMaintenanceEnd().isBefore(now)) {
+                System.out.println("✅ Room " + room.getRoomID() + ": Maintenance ended");
+                System.out.println("   Maintenance End: " + room.getMaintenanceEnd());
+                System.out.println("   Current Time: " + now);
+                
+                // ✅ Clear maintenance schedule
+                room.setMaintenanceStart(null);
+                room.setMaintenanceEnd(null);
+                
+                // ✅ Set availability back to Available (1)
+                room.setAvailabilityStatus(1);
+                room.setUpdatedDate(now);
+                
+                roomRepository.save(room);
+                updatedCount++;
+                
+                System.out.println("   Status: Unavailable → Available");
+                System.out.println("   Maintenance cleared");
+            }
+        }
+        
+        System.out.println("✅ Auto-update complete: " + updatedCount + " rooms updated");
+    }
 }

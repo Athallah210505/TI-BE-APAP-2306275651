@@ -4,6 +4,7 @@ import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -48,27 +49,59 @@ public class PropertyRestController {
     public static final String PROPERTY_BY_OWNER = BASE_URL + "/owner/{ownerId}";
     
     @GetMapping(BASE_URL)
-    public ResponseEntity<BaseResponseDTO<List<PropertyResponseDTO>>> getAllProperties(
-            @RequestParam(required = false) String search,
-            @RequestParam(required = false) Integer type,
-            @RequestParam(required = false) Integer status) {
+public ResponseEntity<BaseResponseDTO<List<PropertyResponseDTO>>> getAllProperties(
+        @RequestParam(required = false) String name,
+        @RequestParam(required = false) Integer type,
+        @RequestParam(required = false) Integer activeStatus) {
+    
+    var baseResponseDTO = new BaseResponseDTO<List<PropertyResponseDTO>>();
+    
+    try {
+        // ✅ Fetch all properties
+        List<PropertyResponseDTO> properties = propertyRestService.getAllProperties();
         
-        var baseResponseDTO = new BaseResponseDTO<List<PropertyResponseDTO>>();
-        
-        List<PropertyResponseDTO> listProperty;
-        
-        if (search != null || type != null || status != null) {
-            listProperty = propertyRestService.getAllProperties();
-        } else {
-            listProperty = propertyRestService.getAllProperties();
+        // ✅ Filter by name (case-insensitive, partial match)
+        if (name != null && !name.trim().isEmpty()) {
+            String nameLower = name.toLowerCase();
+            properties = properties.stream()
+                    .filter(p -> p.getPropertyName() != null && 
+                                p.getPropertyName().toLowerCase().contains(nameLower))
+                    .collect(Collectors.toList());
         }
         
+        // ✅ Filter by type (exact match)
+        if (type != null) {
+            properties = properties.stream()
+                    .filter(p -> p.getType() != null && p.getType().equals(type))
+                    .collect(Collectors.toList());
+        }
+        
+        // ✅ Filter by activeStatus (exact match)
+        if (activeStatus != null) {
+            properties = properties.stream()
+                    .filter(p -> p.getActiveStatus() != null && 
+                                p.getActiveStatus().equals(activeStatus))
+                    .collect(Collectors.toList());
+        }
+        
+        // ✅ Sort by propertyID (optional)
+        properties = properties.stream()
+                .sorted((p1, p2) -> p1.getPropertyID().compareTo(p2.getPropertyID()))
+                .collect(Collectors.toList());
+        
         baseResponseDTO.setStatus(HttpStatus.OK.value());
-        baseResponseDTO.setData(listProperty);
-        baseResponseDTO.setMessage("Data Property Berhasil Ditemukan");
+        baseResponseDTO.setData(properties);
+        baseResponseDTO.setMessage("Data Property Berhasil Ditemukan (" + properties.size() + " properties)");
         baseResponseDTO.setTimestamp(new Date()); 
         return new ResponseEntity<>(baseResponseDTO, HttpStatus.OK);
+        
+    } catch (Exception ex) {
+        baseResponseDTO.setStatus(HttpStatus.INTERNAL_SERVER_ERROR.value());
+        baseResponseDTO.setMessage("Terjadi kesalahan pada server: " + ex.getMessage());
+        baseResponseDTO.setTimestamp(new Date()); 
+        return new ResponseEntity<>(baseResponseDTO, HttpStatus.INTERNAL_SERVER_ERROR);
     }
+}
     
     @GetMapping(VIEW_PROPERTY)
     public ResponseEntity<BaseResponseDTO<PropertyResponseDTO>> getProperty(
@@ -296,34 +329,50 @@ public class PropertyRestController {
     }
     
     @DeleteMapping(DELETE_PROPERTY)
-    public ResponseEntity<BaseResponseDTO<PropertyResponseDTO>> deleteProperty(@PathVariable String id) {
-        var baseResponseDTO = new BaseResponseDTO<PropertyResponseDTO>();
+public ResponseEntity<BaseResponseDTO<PropertyResponseDTO>> deleteProperty(@PathVariable String id) {
+    var baseResponseDTO = new BaseResponseDTO<PropertyResponseDTO>();
+    
+    try {
+        PropertyResponseDTO existingProperty = propertyRestService.getPropertyById(id);
         
-        try {
-            PropertyResponseDTO existingProperty = propertyRestService.getPropertyById(id);
-            
-            if (existingProperty == null) {
-                baseResponseDTO.setStatus(HttpStatus.NOT_FOUND.value());
-                baseResponseDTO.setMessage("Property Tidak Ditemukan");
-                baseResponseDTO.setTimestamp(new Date()); 
-                return new ResponseEntity<>(baseResponseDTO, HttpStatus.NOT_FOUND);
-            }
-            
-            PropertyResponseDTO deletedProperty = propertyRestService.deleteProperty(id);
-            
-            baseResponseDTO.setStatus(HttpStatus.OK.value());
-            baseResponseDTO.setData(deletedProperty);
-            baseResponseDTO.setMessage("Property Berhasil Dihapus (Soft Delete)");
+        if (existingProperty == null) {
+            baseResponseDTO.setStatus(HttpStatus.NOT_FOUND.value());
+            baseResponseDTO.setMessage("Property Tidak Ditemukan");
             baseResponseDTO.setTimestamp(new Date()); 
-            return new ResponseEntity<>(baseResponseDTO, HttpStatus.OK);
-            
-        } catch (Exception ex) {
-            baseResponseDTO.setStatus(HttpStatus.INTERNAL_SERVER_ERROR.value());
-            baseResponseDTO.setMessage("Terjadi kesalahan pada server: " + ex.getMessage());
-            baseResponseDTO.setTimestamp(new Date()); 
-            return new ResponseEntity<>(baseResponseDTO, HttpStatus.INTERNAL_SERVER_ERROR);
+            return new ResponseEntity<>(baseResponseDTO, HttpStatus.NOT_FOUND);
         }
+        
+        // ✅ Try to delete property
+        PropertyResponseDTO deletedProperty = propertyRestService.deleteProperty(id);
+        
+        baseResponseDTO.setStatus(HttpStatus.OK.value());
+        baseResponseDTO.setData(deletedProperty);
+        baseResponseDTO.setMessage("Property Berhasil Dihapus (Soft Delete)");
+        baseResponseDTO.setTimestamp(new Date()); 
+        return new ResponseEntity<>(baseResponseDTO, HttpStatus.OK);
+        
+    } catch (RuntimeException ex) {
+        // ✅ Handle specific exception dari service
+        if (ex.getMessage().contains("booking aktif")) {
+            baseResponseDTO.setStatus(HttpStatus.BAD_REQUEST.value());
+            baseResponseDTO.setMessage(" " + ex.getMessage());
+            baseResponseDTO.setTimestamp(new Date()); 
+            return new ResponseEntity<>(baseResponseDTO, HttpStatus.BAD_REQUEST);
+        }
+        
+        // ✅ Handle other runtime exceptions
+        baseResponseDTO.setStatus(HttpStatus.INTERNAL_SERVER_ERROR.value());
+        baseResponseDTO.setMessage("Terjadi kesalahan: " + ex.getMessage());
+        baseResponseDTO.setTimestamp(new Date()); 
+        return new ResponseEntity<>(baseResponseDTO, HttpStatus.INTERNAL_SERVER_ERROR);
+        
+    } catch (Exception ex) {
+        baseResponseDTO.setStatus(HttpStatus.INTERNAL_SERVER_ERROR.value());
+        baseResponseDTO.setMessage("Terjadi kesalahan pada server: " + ex.getMessage());
+        baseResponseDTO.setTimestamp(new Date()); 
+        return new ResponseEntity<>(baseResponseDTO, HttpStatus.INTERNAL_SERVER_ERROR);
     }
+}
 
     @GetMapping("/property/updateroom/{idProperty}")
     public ResponseEntity<BaseResponseDTO<PropertyResponseDTO>> getAddRoomTypeForm(

@@ -2,7 +2,9 @@ package apap.ti._5.accommodation_2306275651_be.restservice;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -18,6 +20,7 @@ import apap.ti._5.accommodation_2306275651_be.repository.RoomRepository;
 import apap.ti._5.accommodation_2306275651_be.restdto.request.booking.CreateBookingRequestDTO;
 import apap.ti._5.accommodation_2306275651_be.restdto.request.booking.UpdateBookingRequestDTO;
 import apap.ti._5.accommodation_2306275651_be.restdto.request.booking.UpdateBookingStatusRequestDTO;
+import apap.ti._5.accommodation_2306275651_be.restdto.response.booking.BookingChartResponseDTO;
 import apap.ti._5.accommodation_2306275651_be.restdto.response.booking.BookingResponseDTO;
 
 @Service
@@ -35,6 +38,19 @@ public class BookingRestServiceImpl implements BookingRestService {
 
    @Override
 public BookingResponseDTO createBooking(CreateBookingRequestDTO dto) {
+
+
+    boolean hasConflict = checkBookingConflict(
+            dto.getRoomID(),
+            dto.getCheckInDate(),
+            dto.getCheckOutDate(),
+            null // No exclude ID for new booking
+        );
+        
+        if (hasConflict) {
+            System.err.println("   ❌ BOOKING CONFLICT DETECTED!");
+            throw new RuntimeException("Kamar sudah dibooking pada tanggal tersebut. Silakan pilih tanggal lain.");
+        }
     // ✅ Validate dates
     if (dto.getCheckOutDate().isBefore(dto.getCheckInDate()) || 
         dto.getCheckOutDate().isEqual(dto.getCheckInDate())) {
@@ -126,6 +142,65 @@ public BookingResponseDTO createBooking(CreateBookingRequestDTO dto) {
     
     return convertToResponseDTO(savedBooking);
 }
+// ✅ HELPER METHOD: Check booking conflict (internal use)
+    private boolean checkBookingConflict(
+            String roomID, 
+            LocalDateTime checkInDate, 
+            LocalDateTime checkOutDate,
+            String excludeBookingID) {
+        
+        System.out.println("🔍 Checking booking conflicts:");
+        System.out.println("   Room ID: " + roomID);
+        System.out.println("   Check-in: " + checkInDate);
+        System.out.println("   Check-out: " + checkOutDate);
+        System.out.println("   Exclude Booking ID: " + (excludeBookingID != null ? excludeBookingID : "none"));
+        
+        try {
+            // ✅ Get active bookings (status 0 & 1) untuk room ini
+            List<Booking> activeBookings = bookingRepository.findByRoom_RoomIDAndStatus(roomID, 0);
+            activeBookings.addAll(bookingRepository.findByRoom_RoomIDAndStatus(roomID, 1));
+            
+            System.out.println("   Total active bookings for this room: " + activeBookings.size());
+            
+            // ✅ Filter: check overlap (exclude current booking if update)
+            List<Booking> conflicts = activeBookings.stream()
+                .filter(b -> excludeBookingID == null || !b.getBookingID().equals(excludeBookingID))
+                .filter(b -> {
+                    // ✅ CRITICAL: Check if booking dates overlap
+                    // Overlap occurs if:
+                    // (new_checkin < existing_checkout) AND (new_checkout > existing_checkin)
+                    boolean overlaps = checkInDate.isBefore(b.getCheckOutDate()) && 
+                                      checkOutDate.isAfter(b.getCheckInDate());
+                    
+                    if (overlaps) {
+                        System.out.println("   ⚠️ OVERLAP DETECTED:");
+                        System.out.println("      Existing Booking ID: " + b.getBookingID());
+                        System.out.println("      Existing Check-in: " + b.getCheckInDate());
+                        System.out.println("      Existing Check-out: " + b.getCheckOutDate());
+                        System.out.println("      New Check-in: " + checkInDate);
+                        System.out.println("      New Check-out: " + checkOutDate);
+                    }
+                    
+                    return overlaps;
+                })
+                .collect(Collectors.toList());
+            
+            if (!conflicts.isEmpty()) {
+                System.out.println("   ❌ Found " + conflicts.size() + " conflicting booking(s)");
+                return true;
+            }
+            
+            System.out.println("   ✅ No conflicts found");
+            return false;
+            
+        } catch (Exception ex) {
+            System.err.println("   ⚠️ Error checking booking conflict: " + ex.getMessage());
+            ex.printStackTrace();
+            // ✅ Jika error, anggap ada conflict untuk safety
+            return true;
+        }
+    }
+    
 // ✅ Helper method untuk generate Booking ID dari Room ID
 private String generateBookingID(String roomID) {
     if (roomID == null || roomID.isEmpty()) {
@@ -201,13 +276,22 @@ public BookingResponseDTO updateBooking(String bookingID, UpdateBookingRequestDT
     Booking booking = bookingRepository.findById(bookingID)
             .orElseThrow(() -> new RuntimeException("Booking not found with id: " + bookingID));
     
+    // ✅ Simpan data LAMA untuk hitung refund/extra pay
+    int oldTotalPrice = booking.getTotalPrice();
+    int oldStatus = booking.getStatus();
+    
+    System.out.println("📝 Updating booking:");
+    System.out.println("   Booking ID: " + bookingID);
+    System.out.println("   Old Status: " + oldStatus);
+    System.out.println("   Old Total Price: Rp " + oldTotalPrice);
+    
     // ✅ Validate dates
     if (dto.getCheckOutDate().isBefore(dto.getCheckInDate()) ||
         dto.getCheckOutDate().isEqual(dto.getCheckInDate())) {
         throw new RuntimeException("Check-out date must be at least 1 day after check-in date");
     }
     
-    // ✅ Calculate total days dengan benar
+    // ✅ Calculate total days
     long totalDays = java.time.temporal.ChronoUnit.DAYS.between(
         dto.getCheckInDate().toLocalDate(), 
         dto.getCheckOutDate().toLocalDate()
@@ -217,14 +301,7 @@ public BookingResponseDTO updateBooking(String bookingID, UpdateBookingRequestDT
         totalDays = 1;
     }
     
-    System.out.println("📅 Updating booking duration:");
-    System.out.println("   Old Check-in: " + booking.getCheckInDate());
-    System.out.println("   New Check-in: " + dto.getCheckInDate());
-    System.out.println("   Old Check-out: " + booking.getCheckOutDate());
-    System.out.println("   New Check-out: " + dto.getCheckOutDate());
-    System.out.println("   Total Days: " + totalDays);
-    
-    // ✅ FIX: Update Room entity & Booking ID jika ganti room
+    // ✅ Get Room (baru atau lama)
     Room newRoom = null;
     boolean roomChanged = false;
     
@@ -232,7 +309,6 @@ public BookingResponseDTO updateBooking(String bookingID, UpdateBookingRequestDT
         newRoom = roomRepository.findById(dto.getRoomID())
                 .orElseThrow(() -> new RuntimeException("Room not found with id: " + dto.getRoomID()));
         
-        // ✅ Cek apakah room berubah
         if (booking.getRoom() == null || !booking.getRoom().getRoomID().equals(dto.getRoomID())) {
             roomChanged = true;
             System.out.println("🔄 Room changed:");
@@ -240,7 +316,6 @@ public BookingResponseDTO updateBooking(String bookingID, UpdateBookingRequestDT
             System.out.println("   New Room: " + newRoom.getRoomID());
         }
     } else {
-        // ✅ Jika tidak ada roomID baru, gunakan room lama
         newRoom = booking.getRoom();
     }
     
@@ -248,90 +323,132 @@ public BookingResponseDTO updateBooking(String bookingID, UpdateBookingRequestDT
         throw new RuntimeException("Room is required for booking");
     }
     
-    // ✅ Recalculate total price dengan benar
-    int basePrice = newRoom.getRoomType().getPrice(); // Price per night
-    int breakfastPrice = (dto.getIsBreakfast() != null && dto.getIsBreakfast()) ? 50000 : 0; // Per night
-    int totalPrice = (int) ((basePrice + breakfastPrice) * totalDays);
+    // ✅ Calculate NEW total price
+    int basePrice = newRoom.getRoomType().getPrice();
+    int breakfastPrice = (dto.getIsBreakfast() != null && dto.getIsBreakfast()) ? 50000 : 0;
+    int newTotalPrice = (int) ((basePrice + breakfastPrice) * totalDays);
     
-    System.out.println("💰 Recalculating booking price:");
+    System.out.println("💰 Price calculation:");
     System.out.println("   Base Price: Rp " + basePrice + " per night");
     System.out.println("   Breakfast: Rp " + breakfastPrice + " per night");
     System.out.println("   Total Days: " + totalDays + " nights");
-    System.out.println("   Old Total Price: Rp " + booking.getTotalPrice());
-    System.out.println("   New Total Price: Rp " + totalPrice);
+    System.out.println("   New Total Price: Rp " + newTotalPrice);
     
-    // ✅ FIX: Jika room berubah, buat entity BARU (jangan delete-save)
+    // ✅ FIX: Auto-calculate refund/extra pay berdasarkan selisih harga
+    int newStatus = oldStatus;
+    int newExtraPay = 0;
+    int newRefund = 0;
+    
+    // ✅ HANYA hitung refund/extra pay jika booking sudah pernah dibayar (status 1)
+    if (oldStatus == 1) {
+        int priceDifference = newTotalPrice - oldTotalPrice;
+        
+        if (priceDifference > 0) {
+            // ✅ Harga NAIK → Extra Pay
+            newExtraPay = priceDifference;
+            newStatus = 0; // Status berubah ke "Waiting for Payment"
+            
+            System.out.println("📈 Price increased:");
+            System.out.println("   Difference: +Rp " + priceDifference);
+            System.out.println("   Extra Pay: Rp " + newExtraPay);
+            System.out.println("   Status changed: 1 → 0 (Waiting for Payment)");
+            
+        } else if (priceDifference < 0) {
+            // ✅ Harga TURUN → Refund
+            newRefund = Math.abs(priceDifference); // Selisih harga (positif)
+            newStatus = 3; // Status berubah ke "Request Refund"
+            
+            System.out.println("📉 Price decreased:");
+            System.out.println("   Difference: -Rp " + Math.abs(priceDifference));
+            System.out.println("   Refund: Rp " + newRefund);
+            System.out.println("   Status changed: 1 → 3 (Request Refund)");
+            System.out.println("   ⚠️ Income NOT changed yet (Rp " + oldTotalPrice + " still in income)");
+            
+        } else {
+            // ✅ Harga SAMA
+            System.out.println("   Price unchanged, no extra pay or refund");
+        }
+        
+    } else if (oldStatus == 0) {
+        // ✅ Status 0: Tetap status 0, keep extra pay yang lama
+        newExtraPay = booking.getExtraPay();
+        System.out.println("   Status 0: Keep existing extra pay (Rp " + newExtraPay + ")");
+        
+    } else if (oldStatus == 3) {
+        // ✅ Status 3: Tetap status 3, keep refund yang lama
+        newRefund = booking.getRefund();
+        newStatus = 3;
+        System.out.println("   Status 3: Keep existing refund (Rp " + newRefund + ")");
+    }
+    
+    // ✅ Jika room berubah, buat booking BARU dengan ID baru
     if (roomChanged) {
-        // ✅ Generate new booking ID dengan room baru, KEEP created date
         LocalDateTime createdDate = booking.getCreatedDate();
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd-HH:mm:ss");
         String datetime = createdDate.format(formatter);
         
-        // ✅ Extract property code & room number dari new room ID
         String[] parts = newRoom.getRoomID().split("-");
-        String propertyCode = parts[parts.length - 2]; // 004
-        String roomNumber = parts[parts.length - 1];    // 101
-        
+        String propertyCode = parts[parts.length - 2];
+        String roomNumber = parts[parts.length - 1];
         String newBookingID = String.format("BOOK-%s-%s-%s", propertyCode, roomNumber, datetime);
         
-        System.out.println("🆔 Booking ID changed:");
-        System.out.println("   Old Booking ID: " + bookingID);
+        System.out.println("🆔 Creating new booking with new room:");
         System.out.println("   New Booking ID: " + newBookingID);
         
-        // ✅ FIX: Buat entity BARU, jangan delete-save yang lama
         Booking newBooking = Booking.builder()
                 .bookingID(newBookingID)
                 .checkInDate(dto.getCheckInDate())
                 .checkOutDate(dto.getCheckOutDate())
                 .totalDays((int) totalDays)
-                .totalPrice(totalPrice)
-                .status(dto.getStatus())
-                .customerID(booking.getCustomerID()) // Keep customer ID
+                .totalPrice(newTotalPrice)
+                .status(newStatus)
+                .customerID(booking.getCustomerID())
                 .customerName(dto.getCustomerName())
                 .customerEmail(dto.getCustomerEmail())
                 .customerPhone(dto.getCustomerPhone())
                 .isBreakfast(dto.getIsBreakfast() != null ? dto.getIsBreakfast() : false)
                 .capacity(dto.getCapacity())
-                .refund(booking.getRefund()) // Keep refund
-                .extraPay(booking.getExtraPay()) // Keep extra pay
+                .refund(newRefund) // ✅ Set refund otomatis
+                .extraPay(newExtraPay) // ✅ Set extra pay otomatis
                 .room(newRoom)
-                .createdDate(createdDate) // ✅ KEEP created date lama
+                .createdDate(createdDate) // ✅ Keep created date lama
                 .updatedDate(LocalDateTime.now())
                 .build();
         
-        // ✅ Delete old booking
         bookingRepository.deleteById(bookingID);
-        
-        // ✅ Save new booking
         Booking savedBooking = bookingRepository.save(newBooking);
         
         System.out.println("✅ New booking created:");
         System.out.println("   Booking ID: " + savedBooking.getBookingID());
-        System.out.println("   Room ID: " + savedBooking.getRoom().getRoomID());
-        System.out.println("   Created Date: " + savedBooking.getCreatedDate() + " (unchanged)");
+        System.out.println("   Status: " + newStatus);
+        System.out.println("   Extra Pay: Rp " + newExtraPay);
+        System.out.println("   Refund: Rp " + newRefund);
         
         return convertToResponseDTO(savedBooking);
         
     } else {
-        // ✅ Room TIDAK berubah, update existing booking
+        // ✅ Room SAMA, update existing booking
         booking.setCheckInDate(dto.getCheckInDate());
         booking.setCheckOutDate(dto.getCheckOutDate());
         booking.setTotalDays((int) totalDays);
-        booking.setTotalPrice(totalPrice);
+        booking.setTotalPrice(newTotalPrice);
         booking.setCustomerName(dto.getCustomerName());
         booking.setCustomerEmail(dto.getCustomerEmail());
         booking.setCustomerPhone(dto.getCustomerPhone());
         booking.setCapacity(dto.getCapacity());
         booking.setBreakfast(dto.getIsBreakfast() != null ? dto.getIsBreakfast() : false);
-        booking.setStatus(dto.getStatus());
+        booking.setStatus(newStatus); // ✅ Update status
+        booking.setExtraPay(newExtraPay); // ✅ Set extra pay otomatis
+        booking.setRefund(newRefund); // ✅ Set refund otomatis
         booking.setUpdatedDate(LocalDateTime.now());
         
         Booking updatedBooking = bookingRepository.save(booking);
         
-        System.out.println("✅ Booking updated (same room):");
+        System.out.println("✅ Booking updated:");
         System.out.println("   Booking ID: " + updatedBooking.getBookingID());
-        System.out.println("   Total Days: " + updatedBooking.getTotalDays());
-        System.out.println("   Total Price: Rp " + updatedBooking.getTotalPrice());
+        System.out.println("   Status: " + newStatus);
+        System.out.println("   Extra Pay: Rp " + newExtraPay);
+        System.out.println("   Refund: Rp " + newRefund);
         
         return convertToResponseDTO(updatedBooking);
     }
@@ -366,49 +483,89 @@ public BookingResponseDTO updateBooking(String bookingID, UpdateBookingRequestDT
     }
 
     @Override
-    @Transactional
-    public void autoUpdateBookingStatuses() {
-        LocalDateTime now = LocalDateTime.now();
+@Transactional
+public void autoUpdateBookingStatuses() {
+    LocalDateTime now = LocalDateTime.now();
+    
+    System.out.println("🔄 Auto-updating booking statuses...");
+    System.out.println("   Current Time: " + now);
+    
+    // ✅ Ambil semua bookings
+    List<Booking> allBookings = bookingRepository.findAll();
+    
+    int updatedCount = 0;
+    int doneCount = 0;
+    int cancelledCount = 0;
+    
+    for (Booking booking : allBookings) {
+        boolean wasUpdated = false;
         
-        // ✅ Ambil semua bookings
-        List<Booking> allBookings = bookingRepository.findAll();
+        // ✅ RULE 1: Status 1 (Payment Confirmed) → 4 (Done) jika sudah check-in
+        if (booking.getStatus() == 1 && booking.getCheckInDate().isBefore(now)) {
+            System.out.println("📅 Booking " + booking.getBookingID() + ": Status 1 → 4 (Done)");
+            System.out.println("   Check-in: " + booking.getCheckInDate() + " < Now: " + now);
+            
+            booking.setStatus(4); // Done
+            booking.setUpdatedDate(now);
+            wasUpdated = true;
+            doneCount++;
+        }
         
-        for (Booking booking : allBookings) {
-            // ✅ Rule 1: Status 1 (Confirmed) → 4 (Done) jika sudah check-in
-            if (booking.getStatus() == 1 && booking.getCheckInDate().isBefore(now)) {
-                booking.setStatus(4); // Done
-                booking.setUpdatedDate(now);
-                bookingRepository.save(booking);
+        // ✅ RULE 2: Status 0 (Waiting for Payment) → 2 (Cancelled) jika lewat check-in
+        else if (booking.getStatus() == 0 && booking.getCheckInDate().isBefore(now)) {
+            System.out.println(" Booking " + booking.getBookingID() + ": Status 0 → 2 (Cancelled)");
+            System.out.println("   Check-in: " + booking.getCheckInDate() + " < Now: " + now);
+            
+            booking.setStatus(2); // Cancelled
+            booking.setUpdatedDate(now);
+            
+            // ✅ FIX: Kurangi income sesuai aturan cancel (sama seperti manual cancel)
+            if (booking.getExtraPay() > 0) {
+                // Ada extra pay yang sudah dibayar → kurangi extra pay dari income
+                System.out.println("  Reducing income by extra pay: Rp " + booking.getExtraPay());
+                updatePropertyIncome(booking, -booking.getExtraPay());
+            } else {
+                // Tidak ada extra pay → tidak ada income yang dikurangi
+                System.out.println(" No income change (no payment yet)");
             }
             
-            // ✅ Rule 2: Status 0 (Waiting Payment with extra pay) → 2 (Cancelled) jika lewat check-in
-            if (booking.getStatus() == 0 && booking.getCheckInDate().isBefore(now)) {
-                booking.setStatus(2); // Cancelled
-                booking.setUpdatedDate(now);
-                
-                // ✅ Update property income (kurangi extra pay yang sudah dibayar)
-                if (booking.getExtraPay() > 0) {
-                    updatePropertyIncome(booking, -booking.getExtraPay());
-                }
-                
-                bookingRepository.save(booking);
+            wasUpdated = true;
+            cancelledCount++;
+        }
+        
+        // ✅ RULE 3: Status 3 (Request Refund) → 4 (Done) jika lewat check-in
+        //    DAN kurangi refund dari property income
+        else if (booking.getStatus() == 3 && booking.getCheckInDate().isBefore(now)) {
+            System.out.println("💸 Booking " + booking.getBookingID() + ": Status 3 → 4 (Done with refund)");
+            System.out.println("   Check-in: " + booking.getCheckInDate() + " < Now: " + now);
+            System.out.println("   Refund Amount: Rp " + booking.getRefund());
+            
+            booking.setStatus(4); // Done
+            booking.setUpdatedDate(now);
+            
+            // ✅ Kurangi property income sejumlah refund
+            if (booking.getRefund() > 0) {
+                System.out.println("   💰 Reducing income by refund: Rp " + booking.getRefund());
+                updatePropertyIncome(booking, -booking.getRefund());
             }
             
-            // ✅ Rule 3: Status 3 (Request Refund) → 4 (Done) jika lewat check-in
-            if (booking.getStatus() == 3 && booking.getCheckInDate().isBefore(now)) {
-                booking.setStatus(4); // Done
-                booking.setUpdatedDate(now);
-                
-                // ✅ Update property income (kurangi refund yang harus dikembalikan)
-                if (booking.getRefund() > 0) {
-                    updatePropertyIncome(booking, -booking.getRefund());
-                }
-                
-                bookingRepository.save(booking);
-            }
+            wasUpdated = true;
+            doneCount++;
+        }
+        
+        // ✅ Save booking jika ada perubahan
+        if (wasUpdated) {
+            bookingRepository.save(booking);
+            updatedCount++;
         }
     }
-
+    
+    System.out.println("✅ Auto-update complete:");
+    System.out.println("   Total Bookings Checked: " + allBookings.size());
+    System.out.println("   Total Updated: " + updatedCount);
+    System.out.println("   Status 1 → 4 (Done): " + doneCount);
+    System.out.println("   Status 0 → 2 (Cancelled): " + cancelledCount);
+}
      @Override
 public BookingResponseDTO confirmPayment(String bookingID, UpdateBookingStatusRequestDTO dto) {
     Booking booking = bookingRepository.findById(bookingID)
@@ -519,45 +676,36 @@ public BookingResponseDTO cancelBooking(String bookingID, UpdateBookingStatusReq
     Booking updatedBooking = bookingRepository.save(booking);
     return convertToResponseDTO(updatedBooking);
 }
-  @Override
-public BookingResponseDTO requestRefund(String bookingID, UpdateBookingStatusRequestDTO dto) {
+@Override
+public BookingResponseDTO processRefund(String bookingID, UpdateBookingStatusRequestDTO dto) {
     Booking booking = bookingRepository.findById(bookingID)
             .orElseThrow(() -> new RuntimeException("Booking not found with id: " + bookingID));
     
-    // ✅ Validasi: Hanya booking dengan status 1 (Payment Confirmed) yang bisa request refund
-    if (booking.getStatus() != 1) {
-        throw new RuntimeException("Only bookings with status 'Payment Confirmed' can request refund");
+    // ✅ Validasi: Hanya booking dengan status 3 (Request Refund) yang bisa process refund
+    if (booking.getStatus() != 3) {
+        throw new RuntimeException("Only bookings with status 'Request Refund' can process refund");
     }
     
-    // ✅ Validasi: Refund amount harus diisi dan > 0
-    if (dto.getRefund() == null || dto.getRefund() <= 0) {
-        throw new RuntimeException("Refund amount must be greater than 0");
+    // ✅ Validasi: Harus ada refund amount
+    if (booking.getRefund() <= 0) {
+        throw new RuntimeException("No refund amount to process");
     }
     
-    // ✅ Validasi: Refund tidak boleh lebih besar dari total price
-    if (dto.getRefund() > booking.getTotalPrice()) {
-        throw new RuntimeException("Refund amount cannot exceed total price");
-    }
+    System.out.println("💸 Processing refund:");
+    System.out.println("   Booking ID: " + bookingID);
+    System.out.println("   Refund Amount: Rp " + booking.getRefund());
     
-    // ✅ Update status menjadi 3 (Request Refund)
-    booking.setStatus(3);
-    booking.setRefund(dto.getRefund());
+    // ✅ Kurangi property income sejumlah refund
+    updatePropertyIncome(booking, -booking.getRefund());
+    
+    // ✅ Update status menjadi 4 (Done)
+    booking.setStatus(4);
     booking.setUpdatedDate(LocalDateTime.now());
     
-    System.out.println("💸 Request refund:");
-    System.out.println("   Booking ID: " + bookingID);
-    System.out.println("   Refund Amount: Rp " + dto.getRefund());
-    System.out.println("   ⚠️ Income NOT changed yet (will be deducted when refund is processed)");
-    
-    // ✅ FIX: JANGAN kurangi income dulu
-    // Income baru dikurangi saat:
-    // 1. Manual refund (button "Refund" di detail page) → Belum diimplementasi
-    // 2. Auto-update saat check-in (status 3 → 4) → Sudah ada di autoUpdateBookingStatuses()
-    
-    // ❌ HAPUS LINE INI:
-    // updatePropertyIncome(booking, -dto.getRefund());
-    
     Booking updatedBooking = bookingRepository.save(booking);
+    
+    System.out.println("✅ Refund processed, status changed to Done");
+    
     return convertToResponseDTO(updatedBooking);
 }
     
@@ -622,7 +770,20 @@ private void updatePropertyIncome(Booking booking, int incomeChange) {
     String roomName = "";
     
     if (booking.getRoom() != null) {
-        roomName = booking.getRoom().getName();
+        // ✅ FIX: Extract HANYA nomor unit dari Room ID
+        // Room ID format: HOT-4000-001-201
+        // Ambil bagian terakhir setelah split: 201
+        String roomID = booking.getRoom().getRoomID();
+        if (roomID != null && roomID.contains("-")) {
+            String[] parts = roomID.split("-");
+            roomName = parts[parts.length - 1]; // ✅ Ambil bagian terakhir: "201"
+        } else {
+            roomName = roomID; // Fallback jika format tidak sesuai
+        }
+        
+        System.out.println("🏠 Converting booking to DTO:");
+        System.out.println("   Full Room ID: " + roomID);
+        System.out.println("   Extracted Room Name: " + roomName);
         
         if (booking.getRoom().getRoomType() != null && 
             booking.getRoom().getRoomType().getProperty() != null) {
@@ -647,20 +808,14 @@ private void updatePropertyIncome(Booking booking, int incomeChange) {
             .extraPay(booking.getExtraPay())
             .capacity(booking.getCapacity())
             .propertyName(propertyName)
-            .roomName(roomName)
-            .roomID(booking.getRoom() != null ? booking.getRoom().getRoomID() : null) // ✅ Tambahkan roomID
+            .roomName(roomName) // ✅ Sekarang hanya "201"
+            .roomID(booking.getRoom() != null ? booking.getRoom().getRoomID() : null) // Full ID tetap ada
             .createdDate(booking.getCreatedDate())
             .updatedDate(booking.getUpdatedDate())
             .build();
 }
 
 
-    @Override
-public boolean hasBookingConflict(String roomID, String startDate, String endDate) {
-    // TODO: Implement setelah ada relasi Booking-Room
-    // Untuk sekarang return false
-    return false;
-}
 
 // ✅ TAMBAHKAN method ini
 @Override
@@ -718,4 +873,80 @@ public boolean hasBookingConflictExcluding(String roomID, String startDate, Stri
             default -> "Unknown";
         };
     }
+
+    @Override
+public List<BookingChartResponseDTO> getBookingChartData(Integer month, Integer year) {
+    System.out.println(" Generating booking chart data:");
+    System.out.println("   Month: " + month);
+    System.out.println("   Year: " + year);
+    
+    // ✅ Ambil semua bookings dengan status 4 (Done)
+    List<Booking> doneBookings = bookingRepository.findByStatus(4);
+    
+    // ✅ Filter berdasarkan bulan dan tahun dari check-in date
+    List<Booking> filteredBookings = doneBookings.stream()
+            .filter(b -> {
+                if (b.getCheckInDate() == null) return false;
+                
+                int bookingMonth = b.getCheckInDate().getMonthValue();
+                int bookingYear = b.getCheckInDate().getYear();
+                
+                boolean matchMonth = (month == null || bookingMonth == month);
+                boolean matchYear = (year == null || bookingYear == year);
+                
+                return matchMonth && matchYear;
+            })
+            .collect(Collectors.toList());
+    
+    System.out.println("   Total Done Bookings: " + doneBookings.size());
+    System.out.println("   Filtered Bookings: " + filteredBookings.size());
+    
+    // ✅ Group by property dan hitung total income
+    Map<String, BookingChartResponseDTO> propertyIncomeMap = new HashMap<>();
+    
+    for (Booking booking : filteredBookings) {
+        if (booking.getRoom() == null || 
+            booking.getRoom().getRoomType() == null || 
+            booking.getRoom().getRoomType().getProperty() == null) {
+            continue;
+        }
+        
+        var property = booking.getRoom().getRoomType().getProperty();
+        String propertyID = property.getPropertyID();
+        
+        // ✅ Get atau create entry untuk property ini
+        BookingChartResponseDTO chartData = propertyIncomeMap.getOrDefault(
+            propertyID,
+            BookingChartResponseDTO.builder()
+                .propertyID(propertyID)
+                .propertyName(property.getPropertyName())
+                .totalIncome(0)
+                .totalBookings(0)
+                .month(month)
+                .year(year)
+                .build()
+        );
+        
+        // ✅ Update total income dan total bookings
+        chartData.setTotalIncome(chartData.getTotalIncome() + booking.getTotalPrice());
+        chartData.setTotalBookings(chartData.getTotalBookings() + 1);
+        
+        propertyIncomeMap.put(propertyID, chartData);
+    }
+    
+    // ✅ Convert map to list dan sort by income (descending)
+    List<BookingChartResponseDTO> result = propertyIncomeMap.values().stream()
+            .sorted((a, b) -> b.getTotalIncome().compareTo(a.getTotalIncome()))
+            .collect(Collectors.toList());
+    
+    System.out.println("   Properties found: " + result.size());
+    for (BookingChartResponseDTO data : result) {
+        System.out.println("   - " + data.getPropertyName() + ": Rp " + data.getTotalIncome() + 
+                         " (" + data.getTotalBookings() + " bookings)");
+    }
+    
+    return result;
+}
+
+
 }
