@@ -1,0 +1,100 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>Booking.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">accommodation-2306275651-be</a> &gt; <a href="index.source.html" class="el_package">apap.ti._5.accommodation_2306275651_be.model</a> &gt; <span class="el_source">Booking.java</span></div><h1>Booking.java</h1><pre class="source lang-java linenums">
+package apap.ti._5.accommodation_2306275651_be.model;
+
+import java.time.LocalDateTime;
+import java.util.UUID;
+
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.PrePersist;
+import jakarta.persistence.PreUpdate;
+import jakarta.persistence.Table;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
+@Entity
+@Table(name = &quot;booking&quot;)
+public class Booking {
+
+    @Id
+    @Column(name = &quot;booking_id&quot;, nullable = false, length = 36)
+    private String bookingID; // Primary Key (UUID string)
+
+    @Column(name = &quot;check_in_date&quot;)
+    private LocalDateTime checkInDate;
+
+    @Column(name = &quot;check_out_date&quot;)
+    private LocalDateTime checkOutDate;
+
+    @Column(name = &quot;total_days&quot;)
+    private int totalDays;
+
+    @Column(name = &quot;total_price&quot;)
+    private int totalPrice;
+
+    @Column(name = &quot;status&quot;)
+    private int status; // 0..4 per spesifikasi
+
+    @Column(name = &quot;customer_id&quot;, columnDefinition = &quot;uuid&quot;)
+    private UUID customerID;
+
+    @Column(name = &quot;customer_name&quot;)
+    private String customerName;
+
+    @Column(name = &quot;customer_email&quot;)
+    private String customerEmail;
+
+    @Column(name = &quot;customer_phone&quot;)
+    private String customerPhone;
+
+    @Column(name = &quot;is_breakfast&quot;)
+    private boolean isBreakfast;
+
+    @Column(name = &quot;refund_amount&quot;)
+    private int refund;
+
+    @Column(name = &quot;extra_pay&quot;)
+    private int extraPay;
+
+    @Column(name = &quot;capacity&quot;)
+    private int capacity;
+
+    @Column(name = &quot;created_date&quot;, updatable = false)
+    private LocalDateTime createdDate;
+
+    @Column(name = &quot;updated_date&quot;)
+    private LocalDateTime updatedDate;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = &quot;room_id&quot;, nullable = false)
+    private Room room; 
+
+     
+
+    @PrePersist
+    protected void onCreate() {
+<span class="nc bnc" id="L86" title="All 4 branches missed.">        if (bookingID == null || bookingID.isBlank()) {</span>
+<span class="nc" id="L87">            bookingID = UUID.randomUUID().toString();</span>
+        }
+<span class="nc bnc" id="L89" title="All 2 branches missed.">         if (this.createdDate == null) {</span>
+<span class="nc" id="L90">        this.createdDate = LocalDateTime.now();</span>
+    }
+<span class="nc" id="L92">        updatedDate = createdDate;</span>
+<span class="nc" id="L93">    }</span>
+
+    @PreUpdate
+    protected void onUpdate() {
+<span class="nc" id="L97">        this.updatedDate = LocalDateTime.now();</span>
+<span class="nc" id="L98">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

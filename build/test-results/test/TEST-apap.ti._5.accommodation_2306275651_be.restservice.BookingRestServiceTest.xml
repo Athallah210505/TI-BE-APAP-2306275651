@@ -1,0 +1,636 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="apap.ti._5.accommodation_2306275651_be.restservice.BookingRestServiceTest" tests="67" skipped="0" failures="0" errors="0" timestamp="2025-11-07T03:49:48.402Z" hostname="Athallahs-Laptop.local" time="0.64">
+  <properties/>
+  <testcase name="testCreateBooking_WithBreakfast()" classname="apap.ti._5.accommodation_2306275651_be.restservice.BookingRestServiceTest" time="0.442"/>
+  <testcase name="testCancelBooking_Status0_WithExtraPay()" classname="apap.ti._5.accommodation_2306275651_be.restservice.BookingRestServiceTest" time="0.006"/>
+  <testcase name="testProcessRefund_InvalidStatus()" classname="apap.ti._5.accommodation_2306275651_be.restservice.BookingRestServiceTest" time="0.003"/>
+  <testcase name="testAutoUpdateBookingStatuses_NoUpdates()" classname="apap.ti._5.accommodation_2306275651_be.restservice.BookingRestServiceTest" time="0.003"/>
+  <testcase name="testGetBookingChartData_FilterByYearOnly()" classname="apap.ti._5.accommodation_2306275651_be.restservice.BookingRestServiceTest" time="0.003"/>
+  <testcase name="testConfirmPayment_Success()" classname="apap.ti._5.accommodation_2306275651_be.restservice.BookingRestServiceTest" time="0.004"/>
+  <testcase name="testUpdateBooking_NoRoomID()" classname="apap.ti._5.accommodation_2306275651_be.restservice.BookingRestServiceTest" time="0.004"/>
+  <testcase name="testStatusNameConversion_Done()" classname="apap.ti._5.accommodation_2306275651_be.restservice.BookingRestServiceTest" time="0.002"/>
+  <testcase name="testGetBookingsByCustomer_NotFound()" classname="apap.ti._5.accommodation_2306275651_be.restservice.BookingRestServiceTest" time="0.006"/>
+  <testcase name="testGetBookingChartData_BookingWithNullRoom()" classname="apap.ti._5.accommodation_2306275651_be.restservice.BookingRestServiceTest" time="0.002"/>
+  <testcase name="testHasBookingConflictExcluding_WithConflict()" classname="apap.ti._5.accommodation_2306275651_be.restservice.BookingRestServiceTest" time="0.005"/>
+  <testcase name="testCreateBooking_MultipleNights()" classname="apap.ti._5.accommodation_2306275651_be.restservice.BookingRestServiceTest" time="0.004"/>
+  <testcase name="testUpdateBookingStatus_Success()" classname="apap.ti._5.accommodation_2306275651_be.restservice.BookingRestServiceTest" time="0.003"/>
+  <testcase name="testUpdateBookingStatus_WithRefund()" classname="apap.ti._5.accommodation_2306275651_be.restservice.BookingRestServiceTest" time="0.003"/>
+  <testcase name="testStatusNameConversion_WaitingForPayment()" classname="apap.ti._5.accommodation_2306275651_be.restservice.BookingRestServiceTest" time="0.002"/>
+  <testcase name="testAutoUpdateBookingStatuses_Status3ToDone()" classname="apap.ti._5.accommodation_2306275651_be.restservice.BookingRestServiceTest" time="0.004"/>
+  <testcase name="testCancelBooking_Status1_FullRefund()" classname="apap.ti._5.accommodation_2306275651_be.restservice.BookingRestServiceTest" time="0.004"/>
+  <testcase name="testStatusNameConversion_Unknown()" classname="apap.ti._5.accommodation_2306275651_be.restservice.BookingRestServiceTest" time="0.003"/>
+  <testcase name="testCancelBooking_Status0_NoExtraPay()" classname="apap.ti._5.accommodation_2306275651_be.restservice.BookingRestServiceTest" time="0.003"/>
+  <testcase name="testConfirmPayment_InvalidStatus()" classname="apap.ti._5.accommodation_2306275651_be.restservice.BookingRestServiceTest" time="0.002"/>
+  <testcase name="testUpdateBooking_PriceIncrease_GeneratesExtraPay()" classname="apap.ti._5.accommodation_2306275651_be.restservice.BookingRestServiceTest" time="0.004"/>
+  <testcase name="testUpdateBooking_PriceDecrease_GeneratesRefund()" classname="apap.ti._5.accommodation_2306275651_be.restservice.BookingRestServiceTest" time="0.004"/>
+  <testcase name="testStatusNameConversion_Cancelled()" classname="apap.ti._5.accommodation_2306275651_be.restservice.BookingRestServiceTest" time="0.002"/>
+  <testcase name="testHasBookingConflictExcluding_ExcludeBookingID()" classname="apap.ti._5.accommodation_2306275651_be.restservice.BookingRestServiceTest" time="0.003"/>
+  <testcase name="testDeleteBooking_NotFound()" classname="apap.ti._5.accommodation_2306275651_be.restservice.BookingRestServiceTest" time="0.002"/>
+  <testcase name="testGetBookingChartData_BookingWithNullCheckInDate()" classname="apap.ti._5.accommodation_2306275651_be.restservice.BookingRestServiceTest" time="0.002"/>
+  <testcase name="testUpdateBooking_NotFound()" classname="apap.ti._5.accommodation_2306275651_be.restservice.BookingRestServiceTest" time="0.002"/>
+  <testcase name="testPropertyNameExtraction()" classname="apap.ti._5.accommodation_2306275651_be.restservice.BookingRestServiceTest" time="0.002"/>
+  <testcase name="testGetBookingById_NotFound()" classname="apap.ti._5.accommodation_2306275651_be.restservice.BookingRestServiceTest" time="0.002"/>
+  <testcase name="testCancelBooking_Status3()" classname="apap.ti._5.accommodation_2306275651_be.restservice.BookingRestServiceTest" time="0.003"/>
+  <testcase name="testCreateBooking_ExceedsCapacity()" classname="apap.ti._5.accommodation_2306275651_be.restservice.BookingRestServiceTest" time="0.003"/>
+  <testcase name="testGetBookingsByStatus_WaitingForPayment()" classname="apap.ti._5.accommodation_2306275651_be.restservice.BookingRestServiceTest" time="0.002"/>
+  <testcase name="testRoomNameExtraction()" classname="apap.ti._5.accommodation_2306275651_be.restservice.BookingRestServiceTest" time="0.002"/>
+  <testcase name="testConvertToResponseDTO_WithNullRoom()" classname="apap.ti._5.accommodation_2306275651_be.restservice.BookingRestServiceTest" time="0.002"/>
+  <testcase name="testHasBookingConflictExcluding_NoConflict()" classname="apap.ti._5.accommodation_2306275651_be.restservice.BookingRestServiceTest" time="0.003"/>
+  <testcase name="testGetBookingById_Found()" classname="apap.ti._5.accommodation_2306275651_be.restservice.BookingRestServiceTest" time="0.002"/>
+  <testcase name="testGetBookingsByStatus_PaymentConfirmed()" classname="apap.ti._5.accommodation_2306275651_be.restservice.BookingRestServiceTest" time="0.003"/>
+  <testcase name="testCreateBooking_InvalidDates()" classname="apap.ti._5.accommodation_2306275651_be.restservice.BookingRestServiceTest" time="0.003"/>
+  <testcase name="testConvertToResponseDTO_InvalidRoomIDFormat()" classname="apap.ti._5.accommodation_2306275651_be.restservice.BookingRestServiceTest" time="0.001"/>
+  <testcase name="testGetBookingChartData_MultipleProperties()" classname="apap.ti._5.accommodation_2306275651_be.restservice.BookingRestServiceTest" time="0.002"/>
+  <testcase name="testStatusNameConversion_PaymentConfirmed()" classname="apap.ti._5.accommodation_2306275651_be.restservice.BookingRestServiceTest" time="0.002"/>
+  <testcase name="testDeleteBooking_Success()" classname="apap.ti._5.accommodation_2306275651_be.restservice.BookingRestServiceTest" time="0.002"/>
+  <testcase name="testAutoUpdateBookingStatuses_Status0ToCancelled()" classname="apap.ti._5.accommodation_2306275651_be.restservice.BookingRestServiceTest" time="0.003"/>
+  <testcase name="testUpdateBooking_Success_SameRoom()" classname="apap.ti._5.accommodation_2306275651_be.restservice.BookingRestServiceTest" time="0.003"/>
+  <testcase name="testCreateBooking_Success()" classname="apap.ti._5.accommodation_2306275651_be.restservice.BookingRestServiceTest" time="0.003"/>
+  <testcase name="testGetAllBookings_EmptyList()" classname="apap.ti._5.accommodation_2306275651_be.restservice.BookingRestServiceTest" time="0.002"/>
+  <testcase name="testUpdateBooking_InvalidDates()" classname="apap.ti._5.accommodation_2306275651_be.restservice.BookingRestServiceTest" time="0.002"/>
+  <testcase name="testAutoUpdateBookingStatuses_Status0ToCancelled_WithExtraPay()" classname="apap.ti._5.accommodation_2306275651_be.restservice.BookingRestServiceTest" time="0.003"/>
+  <testcase name="testGetBookingChartData_EmptyList()" classname="apap.ti._5.accommodation_2306275651_be.restservice.BookingRestServiceTest" time="0.001"/>
+  <testcase name="testUpdateBooking_Status0_KeepExtraPay()" classname="apap.ti._5.accommodation_2306275651_be.restservice.BookingRestServiceTest" time="0.002"/>
+  <testcase name="testGetBookingsByCustomer_Found()" classname="apap.ti._5.accommodation_2306275651_be.restservice.BookingRestServiceTest" time="0.002"/>
+  <testcase name="testUpdateBooking_PriceSame_Status1()" classname="apap.ti._5.accommodation_2306275651_be.restservice.BookingRestServiceTest" time="0.003"/>
+  <testcase name="testAutoUpdateBookingStatuses_Status1ToDone()" classname="apap.ti._5.accommodation_2306275651_be.restservice.BookingRestServiceTest" time="0.002"/>
+  <testcase name="testCancelBooking_InvalidStatus()" classname="apap.ti._5.accommodation_2306275651_be.restservice.BookingRestServiceTest" time="0.002"/>
+  <testcase name="testUpdateBooking_Status3_KeepRefund()" classname="apap.ti._5.accommodation_2306275651_be.restservice.BookingRestServiceTest" time="0.003"/>
+  <testcase name="testGetBookingChartData_FilterByMonth()" classname="apap.ti._5.accommodation_2306275651_be.restservice.BookingRestServiceTest" time="0.002"/>
+  <testcase name="testStatusNameConversion_RequestRefund()" classname="apap.ti._5.accommodation_2306275651_be.restservice.BookingRestServiceTest" time="0.002"/>
+  <testcase name="testProcessRefund_Success()" classname="apap.ti._5.accommodation_2306275651_be.restservice.BookingRestServiceTest" time="0.003"/>
+  <testcase name="testConfirmPayment_WithExtraPay()" classname="apap.ti._5.accommodation_2306275651_be.restservice.BookingRestServiceTest" time="0.003"/>
+  <testcase name="testCreateBooking_RoomNotFound()" classname="apap.ti._5.accommodation_2306275651_be.restservice.BookingRestServiceTest" time="0.003"/>
+  <testcase name="testUpdateBookingStatus_WithExtraPay()" classname="apap.ti._5.accommodation_2306275651_be.restservice.BookingRestServiceTest" time="0.002"/>
+  <testcase name="testUpdateBookingStatus_NotFound()" classname="apap.ti._5.accommodation_2306275651_be.restservice.BookingRestServiceTest" time="0.002"/>
+  <testcase name="testGetBookingChartData_Success()" classname="apap.ti._5.accommodation_2306275651_be.restservice.BookingRestServiceTest" time="0.003"/>
+  <testcase name="testUpdateBooking_RoomChanged()" classname="apap.ti._5.accommodation_2306275651_be.restservice.BookingRestServiceTest" time="0.004"/>
+  <testcase name="testUpdateBooking_RoomNotFound()" classname="apap.ti._5.accommodation_2306275651_be.restservice.BookingRestServiceTest" time="0.003"/>
+  <testcase name="testProcessRefund_NoRefundAmount()" classname="apap.ti._5.accommodation_2306275651_be.restservice.BookingRestServiceTest" time="0.002"/>
+  <testcase name="testGetAllBookings_Success()" classname="apap.ti._5.accommodation_2306275651_be.restservice.BookingRestServiceTest" time="0.002"/>
+  <system-out><![CDATA[]]>&#x1f50d;<![CDATA[ Checking booking conflicts:
+   Room ID: HOT-4000-001-201
+   Check-in: 2025-11-13T14:00
+   Check-out: 2025-11-14T12:00
+   Exclude Booking ID: none
+   Total active bookings for this room: 0
+   ✅ No conflicts found
+]]>&#x1f4c5;<![CDATA[ Calculating booking duration:
+   Check-in: 2025-11-13T14:00
+   Check-out: 2025-11-14T12:00
+   Total Days: 1
+ Calculating booking price:
+   Base Price: Rp 300000 per night
+   Breakfast: Rp 50000 per night
+   Total Days: 1 nights
+   Total Price: Rp 350000 (= (Rp 300000 + Rp 50000) × 1)
+✅ Booking created:
+   Booking ID: BOOK-001-201-2025-11-06-20:37:12
+   Room ID: HOT-4000-001-201
+   Customer: John Doe
+   Total Days: 1
+   Total Price: Rp 350000
+]]>&#x1f3e0;<![CDATA[ Converting booking to DTO:
+   Full Room ID: HOT-4000-001-201
+   Extracted Room Name: 201
+]]>&#x1f6ab;<![CDATA[ Cancelling booking:
+   Booking ID: BOOK-001-201-2025-11-06-20:37:12
+   Current Status: 0
+   Total Price: Rp 350000
+   Extra Pay: Rp 100000
+   Refund: Rp 0
+]]>&#x1f4b0;<![CDATA[ Property income updated:
+   Property ID: HOT-4000-001
+   Property Name: Grand Hotel Jakarta
+   Old Income: Rp 0
+   Change: Rp -100000
+   New Income: Rp -100000
+   Income change: -Rp 100000 (extra pay)
+]]>&#x1f3e0;<![CDATA[ Converting booking to DTO:
+   Full Room ID: HOT-4000-001-201
+   Extracted Room Name: 201
+]]>&#x1f504;<![CDATA[ Auto-updating booking statuses...
+   Current Time: 2025-11-07T10:49:48.857548
+✅ Auto-update complete:
+   Total Bookings Checked: 1
+   Total Updated: 0
+   Status 1 → 4 (Done): 0
+   Status 0 → 2 (Cancelled): 0
+ Generating booking chart data:
+   Month: null
+   Year: 2025
+   Total Done Bookings: 1
+   Filtered Bookings: 1
+   Properties found: 1
+   - Grand Hotel Jakarta: Rp 350000 (1 bookings)
+]]>&#x1f4b0;<![CDATA[ First payment:
+   Total Price: Rp 350000
+]]>&#x1f4b0;<![CDATA[ Property income updated:
+   Property ID: HOT-4000-001
+   Property Name: Grand Hotel Jakarta
+   Old Income: Rp 0
+   Change: +Rp 350000
+   New Income: Rp 350000
+]]>&#x1f3e0;<![CDATA[ Converting booking to DTO:
+   Full Room ID: HOT-4000-001-201
+   Extracted Room Name: 201
+]]>&#x1f4dd;<![CDATA[ Updating booking:
+   Booking ID: BOOK-001-201-2025-11-06-20:37:12
+   Old Status: 0
+   Old Total Price: Rp 350000
+]]>&#x1f4b0;<![CDATA[ Price calculation:
+   Base Price: Rp 300000 per night
+   Breakfast: Rp 0 per night
+   Total Days: 1 nights
+   New Total Price: Rp 300000
+   Status 0: Keep existing extra pay (Rp 0)
+✅ Booking updated:
+   Booking ID: BOOK-001-201-2025-11-06-20:37:12
+   Status: 0
+   Extra Pay: Rp 0
+   Refund: Rp 0
+]]>&#x1f3e0;<![CDATA[ Converting booking to DTO:
+   Full Room ID: HOT-4000-001-201
+   Extracted Room Name: 201
+]]>&#x1f3e0;<![CDATA[ Converting booking to DTO:
+   Full Room ID: HOT-4000-001-201
+   Extracted Room Name: 201
+ Generating booking chart data:
+   Month: 11
+   Year: 2025
+   Total Done Bookings: 1
+   Filtered Bookings: 1
+   Properties found: 0
+]]>&#x1f50d;<![CDATA[ Checking booking conflicts (excluding current booking):
+   Room ID: HOT-4000-001-201
+   Check-in: 2025-11-15T14:00
+   Check-out: 2025-11-17T12:00
+   Exclude Booking ID: BOOK-001-201-2025-11-06-20:37:12
+   ❌ Found 1 conflicting booking(s):
+      - Booking ID: BOOK-001-201-2025-11-06-21:00:00 (Check-in: 2025-11-15T14:00, Check-out: 2025-11-16T12:00)
+]]>&#x1f50d;<![CDATA[ Checking booking conflicts:
+   Room ID: HOT-4000-001-201
+   Check-in: 2025-11-13T14:00
+   Check-out: 2025-11-16T12:00
+   Exclude Booking ID: none
+   Total active bookings for this room: 0
+   ✅ No conflicts found
+]]>&#x1f4c5;<![CDATA[ Calculating booking duration:
+   Check-in: 2025-11-13T14:00
+   Check-out: 2025-11-16T12:00
+   Total Days: 3
+ Calculating booking price:
+   Base Price: Rp 300000 per night
+   Breakfast: Rp 50000 per night
+   Total Days: 3 nights
+   Total Price: Rp 1050000 (= (Rp 300000 + Rp 50000) × 3)
+✅ Booking created:
+   Booking ID: BOOK-001-201-2025-11-07-10:49:48
+   Room ID: HOT-4000-001-201
+   Customer: John Doe
+   Total Days: 3
+   Total Price: Rp 1050000
+]]>&#x1f3e0;<![CDATA[ Converting booking to DTO:
+   Full Room ID: HOT-4000-001-201
+   Extracted Room Name: 201
+]]>&#x1f3e0;<![CDATA[ Converting booking to DTO:
+   Full Room ID: HOT-4000-001-201
+   Extracted Room Name: 201
+]]>&#x1f3e0;<![CDATA[ Converting booking to DTO:
+   Full Room ID: HOT-4000-001-201
+   Extracted Room Name: 201
+]]>&#x1f3e0;<![CDATA[ Converting booking to DTO:
+   Full Room ID: HOT-4000-001-201
+   Extracted Room Name: 201
+]]>&#x1f504;<![CDATA[ Auto-updating booking statuses...
+   Current Time: 2025-11-07T10:49:48.900340
+]]>&#x1f4b8;<![CDATA[ Booking BOOK-001-201-2025-11-06-20:37:12: Status 3 → 4 (Done with refund)
+   Check-in: 2025-11-06T10:49:48.899913 < Now: 2025-11-07T10:49:48.900340
+   Refund Amount: Rp 50000
+   ]]>&#x1f4b0;<![CDATA[ Reducing income by refund: Rp 50000
+]]>&#x1f4b0;<![CDATA[ Property income updated:
+   Property ID: HOT-4000-001
+   Property Name: Grand Hotel Jakarta
+   Old Income: Rp 0
+   Change: Rp -50000
+   New Income: Rp -50000
+✅ Auto-update complete:
+   Total Bookings Checked: 1
+   Total Updated: 1
+   Status 1 → 4 (Done): 1
+   Status 0 → 2 (Cancelled): 0
+]]>&#x1f6ab;<![CDATA[ Cancelling booking:
+   Booking ID: BOOK-001-201-2025-11-06-20:37:12
+   Current Status: 1
+   Total Price: Rp 350000
+   Extra Pay: Rp 0
+   Refund: Rp 0
+]]>&#x1f4b0;<![CDATA[ Property income updated:
+   Property ID: HOT-4000-001
+   Property Name: Grand Hotel Jakarta
+   Old Income: Rp 0
+   Change: Rp -350000
+   New Income: Rp -350000
+   Income change: -Rp 350000 (refund full payment)
+]]>&#x1f3e0;<![CDATA[ Converting booking to DTO:
+   Full Room ID: HOT-4000-001-201
+   Extracted Room Name: 201
+]]>&#x1f3e0;<![CDATA[ Converting booking to DTO:
+   Full Room ID: HOT-4000-001-201
+   Extracted Room Name: 201
+]]>&#x1f6ab;<![CDATA[ Cancelling booking:
+   Booking ID: BOOK-001-201-2025-11-06-20:37:12
+   Current Status: 0
+   Total Price: Rp 350000
+   Extra Pay: Rp 0
+   Refund: Rp 0
+   Income change: Rp 0 (no payment yet)
+]]>&#x1f3e0;<![CDATA[ Converting booking to DTO:
+   Full Room ID: HOT-4000-001-201
+   Extracted Room Name: 201
+]]>&#x1f4dd;<![CDATA[ Updating booking:
+   Booking ID: BOOK-001-201-2025-11-06-20:37:12
+   Old Status: 1
+   Old Total Price: Rp 300000
+]]>&#x1f4b0;<![CDATA[ Price calculation:
+   Base Price: Rp 300000 per night
+   Breakfast: Rp 0 per night
+   Total Days: 3 nights
+   New Total Price: Rp 900000
+]]>&#x1f4c8;<![CDATA[ Price increased:
+   Difference: +Rp 600000
+   Extra Pay: Rp 600000
+   Status changed: 1 → 0 (Waiting for Payment)
+✅ Booking updated:
+   Booking ID: BOOK-001-201-2025-11-06-20:37:12
+   Status: 0
+   Extra Pay: Rp 600000
+   Refund: Rp 0
+]]>&#x1f3e0;<![CDATA[ Converting booking to DTO:
+   Full Room ID: HOT-4000-001-201
+   Extracted Room Name: 201
+]]>&#x1f4dd;<![CDATA[ Updating booking:
+   Booking ID: BOOK-001-201-2025-11-06-20:37:12
+   Old Status: 1
+   Old Total Price: Rp 900000
+]]>&#x1f4b0;<![CDATA[ Price calculation:
+   Base Price: Rp 300000 per night
+   Breakfast: Rp 0 per night
+   Total Days: 1 nights
+   New Total Price: Rp 300000
+]]>&#x1f4c9;<![CDATA[ Price decreased:
+   Difference: -Rp 600000
+   Refund: Rp 600000
+   Status changed: 1 → 3 (Request Refund)
+   ⚠️ Income NOT changed yet (Rp 900000 still in income)
+✅ Booking updated:
+   Booking ID: BOOK-001-201-2025-11-06-20:37:12
+   Status: 3
+   Extra Pay: Rp 0
+   Refund: Rp 600000
+]]>&#x1f3e0;<![CDATA[ Converting booking to DTO:
+   Full Room ID: HOT-4000-001-201
+   Extracted Room Name: 201
+]]>&#x1f3e0;<![CDATA[ Converting booking to DTO:
+   Full Room ID: HOT-4000-001-201
+   Extracted Room Name: 201
+]]>&#x1f50d;<![CDATA[ Checking booking conflicts (excluding current booking):
+   Room ID: HOT-4000-001-201
+   Check-in: 2025-11-15T14:00
+   Check-out: 2025-11-17T12:00
+   Exclude Booking ID: BOOK-001-201-2025-11-06-20:37:12
+   ✅ No booking conflicts found
+ Generating booking chart data:
+   Month: 11
+   Year: 2025
+   Total Done Bookings: 1
+   Filtered Bookings: 0
+   Properties found: 0
+]]>&#x1f3e0;<![CDATA[ Converting booking to DTO:
+   Full Room ID: HOT-4000-001-201
+   Extracted Room Name: 201
+]]>&#x1f6ab;<![CDATA[ Cancelling booking:
+   Booking ID: BOOK-001-201-2025-11-06-20:37:12
+   Current Status: 3
+   Total Price: Rp 300000
+   Extra Pay: Rp 0
+   Refund: Rp 50000
+]]>&#x1f4b0;<![CDATA[ Property income updated:
+   Property ID: HOT-4000-001
+   Property Name: Grand Hotel Jakarta
+   Old Income: Rp 0
+   Change: Rp -350000
+   New Income: Rp -350000
+   Total Price OLD: Rp 350000
+   Income change: -Rp 350000 (full refund including pending refund)
+]]>&#x1f3e0;<![CDATA[ Converting booking to DTO:
+   Full Room ID: HOT-4000-001-201
+   Extracted Room Name: 201
+]]>&#x1f50d;<![CDATA[ Checking booking conflicts:
+   Room ID: HOT-4000-001-201
+   Check-in: 2025-11-13T14:00
+   Check-out: 2025-11-14T12:00
+   Exclude Booking ID: none
+   Total active bookings for this room: 0
+   ✅ No conflicts found
+]]>&#x1f4c5;<![CDATA[ Calculating booking duration:
+   Check-in: 2025-11-13T14:00
+   Check-out: 2025-11-14T12:00
+   Total Days: 1
+]]>&#x1f3e0;<![CDATA[ Converting booking to DTO:
+   Full Room ID: HOT-4000-001-201
+   Extracted Room Name: 201
+]]>&#x1f3e0;<![CDATA[ Converting booking to DTO:
+   Full Room ID: HOT-4000-001-201
+   Extracted Room Name: 201
+]]>&#x1f50d;<![CDATA[ Checking booking conflicts (excluding current booking):
+   Room ID: HOT-4000-001-201
+   Check-in: 2025-11-15T14:00
+   Check-out: 2025-11-16T12:00
+   Exclude Booking ID: BOOK-001-201-2025-11-06-20:37:12
+   ✅ No booking conflicts found
+]]>&#x1f3e0;<![CDATA[ Converting booking to DTO:
+   Full Room ID: HOT-4000-001-201
+   Extracted Room Name: 201
+]]>&#x1f3e0;<![CDATA[ Converting booking to DTO:
+   Full Room ID: HOT-4000-001-201
+   Extracted Room Name: 201
+]]>&#x1f50d;<![CDATA[ Checking booking conflicts:
+   Room ID: HOT-4000-001-201
+   Check-in: 2025-11-13T14:00
+   Check-out: 2025-11-13T14:00
+   Exclude Booking ID: none
+   Total active bookings for this room: 0
+   ✅ No conflicts found
+]]>&#x1f3e0;<![CDATA[ Converting booking to DTO:
+   Full Room ID: INVALID
+   Extracted Room Name: INVALID
+ Generating booking chart data:
+   Month: 11
+   Year: 2025
+   Total Done Bookings: 2
+   Filtered Bookings: 2
+   Properties found: 2
+   - Another Hotel: Rp 500000 (1 bookings)
+   - Grand Hotel Jakarta: Rp 350000 (1 bookings)
+]]>&#x1f3e0;<![CDATA[ Converting booking to DTO:
+   Full Room ID: HOT-4000-001-201
+   Extracted Room Name: 201
+]]>&#x1f504;<![CDATA[ Auto-updating booking statuses...
+   Current Time: 2025-11-07T10:49:48.977195
+ Booking BOOK-001-201-2025-11-06-20:37:12: Status 0 → 2 (Cancelled)
+   Check-in: 2025-11-06T10:49:48.976852 < Now: 2025-11-07T10:49:48.977195
+ No income change (no payment yet)
+✅ Auto-update complete:
+   Total Bookings Checked: 1
+   Total Updated: 1
+   Status 1 → 4 (Done): 0
+   Status 0 → 2 (Cancelled): 1
+]]>&#x1f4dd;<![CDATA[ Updating booking:
+   Booking ID: BOOK-001-201-2025-11-06-20:37:12
+   Old Status: 0
+   Old Total Price: Rp 350000
+]]>&#x1f4b0;<![CDATA[ Price calculation:
+   Base Price: Rp 300000 per night
+   Breakfast: Rp 0 per night
+   Total Days: 1 nights
+   New Total Price: Rp 300000
+   Status 0: Keep existing extra pay (Rp 0)
+✅ Booking updated:
+   Booking ID: BOOK-001-201-2025-11-06-20:37:12
+   Status: 0
+   Extra Pay: Rp 0
+   Refund: Rp 0
+]]>&#x1f3e0;<![CDATA[ Converting booking to DTO:
+   Full Room ID: HOT-4000-001-201
+   Extracted Room Name: 201
+]]>&#x1f50d;<![CDATA[ Checking booking conflicts:
+   Room ID: HOT-4000-001-201
+   Check-in: 2025-11-13T14:00
+   Check-out: 2025-11-14T12:00
+   Exclude Booking ID: none
+   Total active bookings for this room: 0
+   ✅ No conflicts found
+]]>&#x1f4c5;<![CDATA[ Calculating booking duration:
+   Check-in: 2025-11-13T14:00
+   Check-out: 2025-11-14T12:00
+   Total Days: 1
+ Calculating booking price:
+   Base Price: Rp 300000 per night
+   Breakfast: Rp 50000 per night
+   Total Days: 1 nights
+   Total Price: Rp 350000 (= (Rp 300000 + Rp 50000) × 1)
+✅ Booking created:
+   Booking ID: BOOK-001-201-2025-11-06-20:37:12
+   Room ID: HOT-4000-001-201
+   Customer: John Doe
+   Total Days: 1
+   Total Price: Rp 350000
+]]>&#x1f3e0;<![CDATA[ Converting booking to DTO:
+   Full Room ID: HOT-4000-001-201
+   Extracted Room Name: 201
+]]>&#x1f4dd;<![CDATA[ Updating booking:
+   Booking ID: BOOK-001-201-2025-11-06-20:37:12
+   Old Status: 0
+   Old Total Price: Rp 350000
+]]>&#x1f504;<![CDATA[ Auto-updating booking statuses...
+   Current Time: 2025-11-07T10:49:48.990993
+ Booking BOOK-001-201-2025-11-06-20:37:12: Status 0 → 2 (Cancelled)
+   Check-in: 2025-11-06T10:49:48.990652 < Now: 2025-11-07T10:49:48.990993
+  Reducing income by extra pay: Rp 100000
+]]>&#x1f4b0;<![CDATA[ Property income updated:
+   Property ID: HOT-4000-001
+   Property Name: Grand Hotel Jakarta
+   Old Income: Rp 0
+   Change: Rp -100000
+   New Income: Rp -100000
+✅ Auto-update complete:
+   Total Bookings Checked: 1
+   Total Updated: 1
+   Status 1 → 4 (Done): 0
+   Status 0 → 2 (Cancelled): 1
+ Generating booking chart data:
+   Month: 11
+   Year: 2025
+   Total Done Bookings: 0
+   Filtered Bookings: 0
+   Properties found: 0
+]]>&#x1f4dd;<![CDATA[ Updating booking:
+   Booking ID: BOOK-001-201-2025-11-06-20:37:12
+   Old Status: 0
+   Old Total Price: Rp 300000
+]]>&#x1f4b0;<![CDATA[ Price calculation:
+   Base Price: Rp 300000 per night
+   Breakfast: Rp 0 per night
+   Total Days: 1 nights
+   New Total Price: Rp 300000
+   Status 0: Keep existing extra pay (Rp 50000)
+✅ Booking updated:
+   Booking ID: BOOK-001-201-2025-11-06-20:37:12
+   Status: 0
+   Extra Pay: Rp 50000
+   Refund: Rp 0
+]]>&#x1f3e0;<![CDATA[ Converting booking to DTO:
+   Full Room ID: HOT-4000-001-201
+   Extracted Room Name: 201
+]]>&#x1f3e0;<![CDATA[ Converting booking to DTO:
+   Full Room ID: HOT-4000-001-201
+   Extracted Room Name: 201
+]]>&#x1f4dd;<![CDATA[ Updating booking:
+   Booking ID: BOOK-001-201-2025-11-06-20:37:12
+   Old Status: 1
+   Old Total Price: Rp 350000
+]]>&#x1f4b0;<![CDATA[ Price calculation:
+   Base Price: Rp 300000 per night
+   Breakfast: Rp 50000 per night
+   Total Days: 1 nights
+   New Total Price: Rp 350000
+   Price unchanged, no extra pay or refund
+✅ Booking updated:
+   Booking ID: BOOK-001-201-2025-11-06-20:37:12
+   Status: 1
+   Extra Pay: Rp 0
+   Refund: Rp 0
+]]>&#x1f3e0;<![CDATA[ Converting booking to DTO:
+   Full Room ID: HOT-4000-001-201
+   Extracted Room Name: 201
+]]>&#x1f504;<![CDATA[ Auto-updating booking statuses...
+   Current Time: 2025-11-07T10:49:49.004777
+]]>&#x1f4c5;<![CDATA[ Booking BOOK-001-201-2025-11-06-20:37:12: Status 1 → 4 (Done)
+   Check-in: 2025-11-06T10:49:49.004552 < Now: 2025-11-07T10:49:49.004777
+✅ Auto-update complete:
+   Total Bookings Checked: 1
+   Total Updated: 1
+   Status 1 → 4 (Done): 1
+   Status 0 → 2 (Cancelled): 0
+]]>&#x1f4dd;<![CDATA[ Updating booking:
+   Booking ID: BOOK-001-201-2025-11-06-20:37:12
+   Old Status: 3
+   Old Total Price: Rp 300000
+]]>&#x1f4b0;<![CDATA[ Price calculation:
+   Base Price: Rp 300000 per night
+   Breakfast: Rp 0 per night
+   Total Days: 1 nights
+   New Total Price: Rp 300000
+   Status 3: Keep existing refund (Rp 100000)
+✅ Booking updated:
+   Booking ID: BOOK-001-201-2025-11-06-20:37:12
+   Status: 3
+   Extra Pay: Rp 0
+   Refund: Rp 100000
+]]>&#x1f3e0;<![CDATA[ Converting booking to DTO:
+   Full Room ID: HOT-4000-001-201
+   Extracted Room Name: 201
+ Generating booking chart data:
+   Month: 11
+   Year: 2025
+   Total Done Bookings: 2
+   Filtered Bookings: 1
+   Properties found: 1
+   - Grand Hotel Jakarta: Rp 350000 (1 bookings)
+]]>&#x1f3e0;<![CDATA[ Converting booking to DTO:
+   Full Room ID: HOT-4000-001-201
+   Extracted Room Name: 201
+]]>&#x1f4b8;<![CDATA[ Processing refund:
+   Booking ID: BOOK-001-201-2025-11-06-20:37:12
+   Refund Amount: Rp 50000
+]]>&#x1f4b0;<![CDATA[ Property income updated:
+   Property ID: HOT-4000-001
+   Property Name: Grand Hotel Jakarta
+   Old Income: Rp 0
+   Change: Rp -50000
+   New Income: Rp -50000
+✅ Refund processed, status changed to Done
+]]>&#x1f3e0;<![CDATA[ Converting booking to DTO:
+   Full Room ID: HOT-4000-001-201
+   Extracted Room Name: 201
+]]>&#x1f4b0;<![CDATA[ Payment with extra pay:
+   Extra Pay: Rp 100000
+   Total Price (already in income): Rp 250000
+]]>&#x1f4b0;<![CDATA[ Property income updated:
+   Property ID: HOT-4000-001
+   Property Name: Grand Hotel Jakarta
+   Old Income: Rp 0
+   Change: +Rp 100000
+   New Income: Rp 100000
+]]>&#x1f3e0;<![CDATA[ Converting booking to DTO:
+   Full Room ID: HOT-4000-001-201
+   Extracted Room Name: 201
+]]>&#x1f50d;<![CDATA[ Checking booking conflicts:
+   Room ID: HOT-4000-001-201
+   Check-in: 2025-11-13T14:00
+   Check-out: 2025-11-14T12:00
+   Exclude Booking ID: none
+   Total active bookings for this room: 0
+   ✅ No conflicts found
+]]>&#x1f4c5;<![CDATA[ Calculating booking duration:
+   Check-in: 2025-11-13T14:00
+   Check-out: 2025-11-14T12:00
+   Total Days: 1
+]]>&#x1f3e0;<![CDATA[ Converting booking to DTO:
+   Full Room ID: HOT-4000-001-201
+   Extracted Room Name: 201
+ Generating booking chart data:
+   Month: 11
+   Year: 2025
+   Total Done Bookings: 1
+   Filtered Bookings: 1
+   Properties found: 1
+   - Grand Hotel Jakarta: Rp 350000 (1 bookings)
+]]>&#x1f4dd;<![CDATA[ Updating booking:
+   Booking ID: BOOK-001-201-2025-11-06-20:37:12
+   Old Status: 0
+   Old Total Price: Rp 350000
+]]>&#x1f504;<![CDATA[ Room changed:
+   Old Room: HOT-4000-001-201
+   New Room: HOT-4000-001-202
+]]>&#x1f4b0;<![CDATA[ Price calculation:
+   Base Price: Rp 300000 per night
+   Breakfast: Rp 0 per night
+   Total Days: 1 nights
+   New Total Price: Rp 300000
+   Status 0: Keep existing extra pay (Rp 0)
+]]>&#x1f194;<![CDATA[ Creating new booking with new room:
+   New Booking ID: BOOK-001-202-2025-10-01-10:00:00
+✅ New booking created:
+   Booking ID: BOOK-001-202-2025-10-01-10:00:00
+   Status: 0
+   Extra Pay: Rp 0
+   Refund: Rp 0
+]]>&#x1f3e0;<![CDATA[ Converting booking to DTO:
+   Full Room ID: HOT-4000-001-202
+   Extracted Room Name: 202
+]]>&#x1f4dd;<![CDATA[ Updating booking:
+   Booking ID: BOOK-001-201-2025-11-06-20:37:12
+   Old Status: 0
+   Old Total Price: Rp 350000
+]]>&#x1f3e0;<![CDATA[ Converting booking to DTO:
+   Full Room ID: HOT-4000-001-201
+   Extracted Room Name: 201
+]]></system-out>
+  <system-err><![CDATA[⚠️ Warning: Property income akan menjadi negatif!
+   Current Income: Rp 0
+   Income Change: Rp -100000
+   Calculated New Income: Rp -100000
+⚠️ Warning: Property income akan menjadi negatif!
+   Current Income: Rp 0
+   Income Change: Rp -50000
+   Calculated New Income: Rp -50000
+⚠️ Warning: Property income akan menjadi negatif!
+   Current Income: Rp 0
+   Income Change: Rp -350000
+   Calculated New Income: Rp -350000
+⚠️ Warning: Property income akan menjadi negatif!
+   Current Income: Rp 0
+   Income Change: Rp -350000
+   Calculated New Income: Rp -350000
+⚠️ Warning: Property income akan menjadi negatif!
+   Current Income: Rp 0
+   Income Change: Rp -100000
+   Calculated New Income: Rp -100000
+⚠️ Warning: Property income akan menjadi negatif!
+   Current Income: Rp 0
+   Income Change: Rp -50000
+   Calculated New Income: Rp -50000
+]]></system-err>
+</testsuite>

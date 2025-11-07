@@ -1,13 +1,2 @@
 Manifest-Version: 1.0
-Main-Class: org.springframework.boot.loader.launch.JarLauncher
-Start-Class: apap.ti._5.accommodation_2306275651_be.Accommodation2306275
- 651BeApplication
-Spring-Boot-Version: 3.5.6
-Spring-Boot-Classes: BOOT-INF/classes/
-Spring-Boot-Lib: BOOT-INF/lib/
-Spring-Boot-Classpath-Index: BOOT-INF/classpath.idx
-Spring-Boot-Layers-Index: BOOT-INF/layers.idx
-Build-Jdk-Spec: 21
-Implementation-Title: accommodation-2306275651-be
-Implementation-Version: 0.0.1-SNAPSHOT
 

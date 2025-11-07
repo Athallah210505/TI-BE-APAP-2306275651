@@ -1,9 +1,21 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuite name="apap.ti._5.accommodation_2306275651_be.Accommodation2306275651BeApplicationTests" tests="1" skipped="0" failures="0" errors="0" timestamp="2025-11-05T08:56:52.440Z" hostname="Athallahs-Laptop.local" time="0.391">
+<testsuite name="apap.ti._5.accommodation_2306275651_be.Accommodation2306275651BeApplicationTests" tests="13" skipped="0" failures="0" errors="0" timestamp="2025-11-07T03:49:42.566Z" hostname="Athallahs-Laptop.local" time="0.514">
   <properties/>
-  <testcase name="contextLoads()" classname="apap.ti._5.accommodation_2306275651_be.Accommodation2306275651BeApplicationTests" time="0.391"/>
-  <system-out><![CDATA[15:56:49.531 [Test worker] INFO org.springframework.test.context.support.AnnotationConfigContextLoaderUtils -- Could not detect default configuration classes for test class [apap.ti._5.accommodation_2306275651_be.Accommodation2306275651BeApplicationTests]: Accommodation2306275651BeApplicationTests does not declare any static, non-private, non-final, nested classes annotated with @Configuration.
-15:56:49.608 [Test worker] INFO org.springframework.boot.test.context.SpringBootTestContextBootstrapper -- Found @SpringBootConfiguration apap.ti._5.accommodation_2306275651_be.Accommodation2306275651BeApplication for test class apap.ti._5.accommodation_2306275651_be.Accommodation2306275651BeApplicationTests
+  <testcase name="databaseConnectionIsConfigured()" classname="apap.ti._5.accommodation_2306275651_be.Accommodation2306275651BeApplicationTests" time="0.458"/>
+  <testcase name="environmentIsActive()" classname="apap.ti._5.accommodation_2306275651_be.Accommodation2306275651BeApplicationTests" time="0.013"/>
+  <testcase name="allRequiredBeansAreLoaded()" classname="apap.ti._5.accommodation_2306275651_be.Accommodation2306275651BeApplicationTests" time="0.003"/>
+  <testcase name="jpaRepositoriesAreLoaded()" classname="apap.ti._5.accommodation_2306275651_be.Accommodation2306275651BeApplicationTests" time="0.003"/>
+  <testcase name="springBootApplicationAnnotationIsPresent()" classname="apap.ti._5.accommodation_2306275651_be.Accommodation2306275651BeApplicationTests" time="0.005"/>
+  <testcase name="beanDefinitionCountIsGreaterThanZero()" classname="apap.ti._5.accommodation_2306275651_be.Accommodation2306275651BeApplicationTests" time="0.006"/>
+  <testcase name="mainClassExists()" classname="apap.ti._5.accommodation_2306275651_be.Accommodation2306275651BeApplicationTests" time="0.002"/>
+  <testcase name="transactionManagerBeanExists()" classname="apap.ti._5.accommodation_2306275651_be.Accommodation2306275651BeApplicationTests" time="0.002"/>
+  <testcase name="applicationNameIsCorrect()" classname="apap.ti._5.accommodation_2306275651_be.Accommodation2306275651BeApplicationTests" time="0.003"/>
+  <testcase name="restControllersAreLoaded()" classname="apap.ti._5.accommodation_2306275651_be.Accommodation2306275651BeApplicationTests" time="0.003"/>
+  <testcase name="entityManagerFactoryBeanExists()" classname="apap.ti._5.accommodation_2306275651_be.Accommodation2306275651BeApplicationTests" time="0.003"/>
+  <testcase name="contextLoads()" classname="apap.ti._5.accommodation_2306275651_be.Accommodation2306275651BeApplicationTests" time="0.002"/>
+  <testcase name="dataSourceBeanExists()" classname="apap.ti._5.accommodation_2306275651_be.Accommodation2306275651BeApplicationTests" time="0.002"/>
+  <system-out><![CDATA[10:49:34.805 [Test worker] INFO org.springframework.test.context.support.AnnotationConfigContextLoaderUtils -- Could not detect default configuration classes for test class [apap.ti._5.accommodation_2306275651_be.Accommodation2306275651BeApplicationTests]: Accommodation2306275651BeApplicationTests does not declare any static, non-private, non-final, nested classes annotated with @Configuration.
+10:49:34.953 [Test worker] INFO org.springframework.boot.test.context.SpringBootTestContextBootstrapper -- Found @SpringBootConfiguration apap.ti._5.accommodation_2306275651_be.Accommodation2306275651BeApplication for test class apap.ti._5.accommodation_2306275651_be.Accommodation2306275651BeApplicationTests
 
   .   ____          _            __ _ _
  /\\ / ___'_ __ _ _(_)_ __  __ _ \ \ \ \
@@ -14,18 +26,18 @@
 
  :: Spring Boot ::                (v3.5.6)
 
-2025-11-05T15:56:49.813+07:00  INFO 63151 --- [accommodation-2306275651-be] [    Test worker] ccommodation2306275651BeApplicationTests : Starting Accommodation2306275651BeApplicationTests using Java 21.0.8 with PID 63151 (started by athallah in /Users/athallah/Documents/SEM 5/APAP/accommodation-ti/accommodation-2306275651-be)
-2025-11-05T15:56:49.814+07:00  INFO 63151 --- [accommodation-2306275651-be] [    Test worker] ccommodation2306275651BeApplicationTests : The following 1 profile is active: "dev"
-2025-11-05T15:56:50.096+07:00  INFO 63151 --- [accommodation-2306275651-be] [    Test worker] .s.d.r.c.RepositoryConfigurationDelegate : Bootstrapping Spring Data JPA repositories in DEFAULT mode.
-2025-11-05T15:56:50.131+07:00  INFO 63151 --- [accommodation-2306275651-be] [    Test worker] .s.d.r.c.RepositoryConfigurationDelegate : Finished Spring Data repository scanning in 30 ms. Found 4 JPA repository interfaces.
-2025-11-05T15:56:50.335+07:00  INFO 63151 --- [accommodation-2306275651-be] [    Test worker] o.hibernate.jpa.internal.util.LogHelper  : HHH000204: Processing PersistenceUnitInfo [name: default]
-2025-11-05T15:56:50.358+07:00  INFO 63151 --- [accommodation-2306275651-be] [    Test worker] org.hibernate.Version                    : HHH000412: Hibernate ORM core version 6.6.29.Final
-2025-11-05T15:56:50.372+07:00  INFO 63151 --- [accommodation-2306275651-be] [    Test worker] o.h.c.internal.RegionFactoryInitiator    : HHH000026: Second-level cache disabled
-2025-11-05T15:56:50.469+07:00  INFO 63151 --- [accommodation-2306275651-be] [    Test worker] o.s.o.j.p.SpringPersistenceUnitInfo      : No LoadTimeWeaver setup: ignoring JPA class transformer
-2025-11-05T15:56:50.482+07:00  INFO 63151 --- [accommodation-2306275651-be] [    Test worker] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Starting...
-2025-11-05T15:56:50.616+07:00  INFO 63151 --- [accommodation-2306275651-be] [    Test worker] com.zaxxer.hikari.pool.HikariPool        : HikariPool-1 - Added connection org.postgresql.jdbc.PgConnection@569a26ab
-2025-11-05T15:56:50.616+07:00  INFO 63151 --- [accommodation-2306275651-be] [    Test worker] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Start completed.
-2025-11-05T15:56:50.696+07:00  INFO 63151 --- [accommodation-2306275651-be] [    Test worker] org.hibernate.orm.connections.pooling    : HHH10001005: Database info:
+2025-11-07T10:49:35.522+07:00  INFO 82181 --- [accommodation-2306275651-be] [    Test worker] ccommodation2306275651BeApplicationTests : Starting Accommodation2306275651BeApplicationTests using Java 21.0.8 with PID 82181 (started by athallah in /Users/athallah/Documents/SEM 5/APAP/accommodation-ti/accommodation-2306275651-be)
+2025-11-07T10:49:35.523+07:00  INFO 82181 --- [accommodation-2306275651-be] [    Test worker] ccommodation2306275651BeApplicationTests : The following 1 profile is active: "dev"
+2025-11-07T10:49:36.230+07:00  INFO 82181 --- [accommodation-2306275651-be] [    Test worker] .s.d.r.c.RepositoryConfigurationDelegate : Bootstrapping Spring Data JPA repositories in DEFAULT mode.
+2025-11-07T10:49:36.292+07:00  INFO 82181 --- [accommodation-2306275651-be] [    Test worker] .s.d.r.c.RepositoryConfigurationDelegate : Finished Spring Data repository scanning in 53 ms. Found 4 JPA repository interfaces.
+2025-11-07T10:49:36.769+07:00  INFO 82181 --- [accommodation-2306275651-be] [    Test worker] o.hibernate.jpa.internal.util.LogHelper  : HHH000204: Processing PersistenceUnitInfo [name: default]
+2025-11-07T10:49:36.834+07:00  INFO 82181 --- [accommodation-2306275651-be] [    Test worker] org.hibernate.Version                    : HHH000412: Hibernate ORM core version 6.6.29.Final
+2025-11-07T10:49:36.872+07:00  INFO 82181 --- [accommodation-2306275651-be] [    Test worker] o.h.c.internal.RegionFactoryInitiator    : HHH000026: Second-level cache disabled
+2025-11-07T10:49:37.188+07:00  INFO 82181 --- [accommodation-2306275651-be] [    Test worker] o.s.o.j.p.SpringPersistenceUnitInfo      : No LoadTimeWeaver setup: ignoring JPA class transformer
+2025-11-07T10:49:37.223+07:00  INFO 82181 --- [accommodation-2306275651-be] [    Test worker] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Starting...
+2025-11-07T10:49:37.474+07:00  INFO 82181 --- [accommodation-2306275651-be] [    Test worker] com.zaxxer.hikari.pool.HikariPool        : HikariPool-1 - Added connection org.postgresql.jdbc.PgConnection@2f931d5d
+2025-11-07T10:49:37.475+07:00  INFO 82181 --- [accommodation-2306275651-be] [    Test worker] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Start completed.
+2025-11-07T10:49:37.585+07:00  INFO 82181 --- [accommodation-2306275651-be] [    Test worker] org.hibernate.orm.connections.pooling    : HHH10001005: Database info:
 	Database JDBC URL [Connecting through datasource 'HikariDataSource (HikariPool-1)']
 	Database driver: undefined/unknown
 	Database version: 17.5
@@ -33,11 +45,11 @@
 	Isolation level: undefined/unknown
 	Minimum pool size: undefined/unknown
 	Maximum pool size: undefined/unknown
-2025-11-05T15:56:51.244+07:00  INFO 63151 --- [accommodation-2306275651-be] [    Test worker] o.h.e.t.j.p.i.JtaPlatformInitiator       : HHH000489: No JTA platform available (set 'hibernate.transaction.jta.platform' to enable JTA platform integration)
-2025-11-05T15:56:51.319+07:00  INFO 63151 --- [accommodation-2306275651-be] [    Test worker] j.LocalContainerEntityManagerFactoryBean : Initialized JPA EntityManagerFactory for persistence unit 'default'
-2025-11-05T15:56:51.467+07:00  INFO 63151 --- [accommodation-2306275651-be] [    Test worker] o.s.d.j.r.query.QueryEnhancerFactory     : Hibernate is in classpath; If applicable, HQL parser will be used.
-2025-11-05T15:56:52.198+07:00  WARN 63151 --- [accommodation-2306275651-be] [    Test worker] JpaBaseConfiguration$JpaWebConfiguration : spring.jpa.open-in-view is enabled by default. Therefore, database queries may be performed during view rendering. Explicitly configure spring.jpa.open-in-view to disable this warning
-2025-11-05T15:56:52.430+07:00  INFO 63151 --- [accommodation-2306275651-be] [    Test worker] ccommodation2306275651BeApplicationTests : Started Accommodation2306275651BeApplicationTests in 2.75 seconds (process running for 3.481)
+2025-11-07T10:49:38.989+07:00  INFO 82181 --- [accommodation-2306275651-be] [    Test worker] o.h.e.t.j.p.i.JtaPlatformInitiator       : HHH000489: No JTA platform available (set 'hibernate.transaction.jta.platform' to enable JTA platform integration)
+2025-11-07T10:49:39.085+07:00  INFO 82181 --- [accommodation-2306275651-be] [    Test worker] j.LocalContainerEntityManagerFactoryBean : Initialized JPA EntityManagerFactory for persistence unit 'default'
+2025-11-07T10:49:39.580+07:00  INFO 82181 --- [accommodation-2306275651-be] [    Test worker] o.s.d.j.r.query.QueryEnhancerFactory     : Hibernate is in classpath; If applicable, HQL parser will be used.
+2025-11-07T10:49:42.103+07:00  WARN 82181 --- [accommodation-2306275651-be] [    Test worker] JpaBaseConfiguration$JpaWebConfiguration : spring.jpa.open-in-view is enabled by default. Therefore, database queries may be performed during view rendering. Explicitly configure spring.jpa.open-in-view to disable this warning
+2025-11-07T10:49:42.547+07:00  INFO 82181 --- [accommodation-2306275651-be] [    Test worker] ccommodation2306275651BeApplicationTests : Started Accommodation2306275651BeApplicationTests in 7.395 seconds (process running for 9.014)
 ]]></system-out>
   <system-err><![CDATA[Mockito is currently self-attaching to enable the inline-mock-maker. This will no longer work in future releases of the JDK. Please add Mockito as an agent to your build as described in Mockito's documentation: https://javadoc.io/doc/org.mockito/mockito-core/latest/org.mockito/org/mockito/Mockito.html#0.3
 WARNING: A Java agent has been loaded dynamically (/Users/athallah/.gradle/caches/modules-2/files-2.1/net.bytebuddy/byte-buddy-agent/1.17.7/fbf3d6d649ed37fc9e9c59480a05be0a26e3c2da/byte-buddy-agent-1.17.7.jar)

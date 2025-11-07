@@ -1,0 +1,330 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>RoomRestServiceImpl.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">accommodation-2306275651-be</a> &gt; <a href="index.source.html" class="el_package">apap.ti._5.accommodation_2306275651_be.restservice</a> &gt; <span class="el_source">RoomRestServiceImpl.java</span></div><h1>RoomRestServiceImpl.java</h1><pre class="source lang-java linenums">package apap.ti._5.accommodation_2306275651_be.restservice;
+
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.stream.Collectors;
+
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import apap.ti._5.accommodation_2306275651_be.model.Booking;
+import apap.ti._5.accommodation_2306275651_be.model.Room;
+import apap.ti._5.accommodation_2306275651_be.model.RoomType;
+import apap.ti._5.accommodation_2306275651_be.repository.BookingRepository;
+import apap.ti._5.accommodation_2306275651_be.repository.RoomRepository;
+import apap.ti._5.accommodation_2306275651_be.repository.RoomTypeRepository;
+import apap.ti._5.accommodation_2306275651_be.restdto.request.room.CreateRoomRequestDTO;
+import apap.ti._5.accommodation_2306275651_be.restdto.request.room.UpdateRoomRequestDTO;
+import apap.ti._5.accommodation_2306275651_be.restdto.response.room.RoomResponseDTO;
+import lombok.RequiredArgsConstructor;
+
+@Service
+@Transactional
+@RequiredArgsConstructor
+public class RoomRestServiceImpl implements RoomRestService {
+    
+    private final RoomRepository roomRepository;
+    private final RoomTypeRepository roomTypeRepository;
+    private final BookingRepository bookingRepository;
+
+    @Override
+    public RoomResponseDTO createRoom(CreateRoomRequestDTO dto) {
+        // Find room type
+<span class="fc" id="L34">        RoomType roomType = roomTypeRepository.findById(dto.getRoomTypeID())</span>
+<span class="fc" id="L35">                .orElseThrow(() -&gt; new RuntimeException(&quot;Room type not found with id: &quot; + dto.getRoomTypeID()));</span>
+        
+        // ✅ Generate room ID jika tidak ada name atau empty
+<span class="fc" id="L38">         String roomID = generateRoomID(roomType);</span>
+    
+<span class="fc" id="L40">    System.out.println(&quot;🏠 Creating Room:&quot;);</span>
+<span class="fc" id="L41">    System.out.println(&quot;   Room ID: &quot; + roomID);</span>
+<span class="fc" id="L42">    System.out.println(&quot;   Room Type ID: &quot; + dto.getRoomTypeID());</span>
+<span class="fc" id="L43">    System.out.println(&quot;   Room Type Name: &quot; + roomType.getName());</span>
+    
+    // Manual conversion DTO to Entity
+<span class="fc" id="L46">    Room room = Room.builder()</span>
+<span class="fc" id="L47">            .roomID(roomID) // ✅ Use generated ID</span>
+<span class="fc" id="L48">            .name(roomID)   // ✅ Name sama dengan ID (HOT-4000-001-201)</span>
+<span class="fc" id="L49">            .roomType(roomType) // ✅ Set relationship</span>
+<span class="fc" id="L50">            .availabilityStatus(dto.getAvailabilityStatus())</span>
+<span class="fc" id="L51">            .activeRoom(dto.getActiveRoom())</span>
+<span class="fc" id="L52">            .maintenanceStart(dto.getMaintenanceStart())</span>
+<span class="fc" id="L53">            .maintenanceEnd(dto.getMaintenanceEnd())</span>
+<span class="fc" id="L54">            .build();</span>
+    
+<span class="fc" id="L56">    Room savedRoom = roomRepository.save(room);</span>
+<span class="fc" id="L57">    System.out.println(&quot;   ✅ Room Saved to DB: &quot; + savedRoom.getRoomID());</span>
+    
+<span class="fc" id="L59">    return convertToResponseDTO(savedRoom);</span>
+}
+
+    @Override
+    public RoomResponseDTO getRoomById(String roomID) {
+<span class="fc" id="L64">        Room room = roomRepository.findById(roomID)</span>
+<span class="fc" id="L65">                .orElseThrow(() -&gt; new RuntimeException(&quot;Room not found with id: &quot; + roomID));</span>
+<span class="fc" id="L66">        return convertToResponseDTO(room);</span>
+    }
+
+    @Override
+    public Room getRoomEntityById(String roomID) {
+<span class="fc" id="L71">        return roomRepository.findById(roomID)</span>
+<span class="fc" id="L72">                .orElseThrow(() -&gt; new RuntimeException(&quot;Room not found with id: &quot; + roomID));</span>
+    }
+
+    @Override
+    public List&lt;RoomResponseDTO&gt; getAllRooms() {
+<span class="fc" id="L77">        return roomRepository.findAll().stream()</span>
+<span class="fc" id="L78">                .map(this::convertToResponseDTO)</span>
+<span class="fc" id="L79">                .collect(Collectors.toList());</span>
+    }
+
+    @Override
+    public List&lt;RoomResponseDTO&gt; getRoomsByRoomType(String roomTypeID) {
+<span class="fc" id="L84">        return roomRepository.findByRoomType_RoomTypeID(roomTypeID).stream()</span>
+<span class="fc" id="L85">                .map(this::convertToResponseDTO)</span>
+<span class="fc" id="L86">                .collect(Collectors.toList());</span>
+    }
+
+    @Override
+    public List&lt;RoomResponseDTO&gt; getAvailableRooms() {
+<span class="fc" id="L91">        return roomRepository.findByAvailabilityStatus(1).stream()</span>
+<span class="fc" id="L92">                .map(this::convertToResponseDTO)</span>
+<span class="fc" id="L93">                .collect(Collectors.toList());</span>
+    }
+
+   @Override
+public RoomResponseDTO updateRoom(String roomID, UpdateRoomRequestDTO dto) {
+<span class="fc" id="L98">    Room room = roomRepository.findById(roomID)</span>
+<span class="fc" id="L99">            .orElseThrow(() -&gt; new RuntimeException(&quot;Room not found with id: &quot; + roomID));</span>
+    
+    // ✅ Update fields (hanya yang tidak null)
+<span class="pc bpc" id="L102" title="1 of 2 branches missed.">    if (dto.getName() != null) {</span>
+<span class="fc" id="L103">        room.setName(dto.getName());</span>
+    }
+<span class="fc bfc" id="L105" title="All 2 branches covered.">    if (dto.getAvailabilityStatus() != null) {</span>
+<span class="fc" id="L106">        room.setAvailabilityStatus(dto.getAvailabilityStatus());</span>
+    }
+<span class="fc bfc" id="L108" title="All 2 branches covered.">    if (dto.getActiveRoom() != null) {</span>
+<span class="fc" id="L109">        room.setActiveRoom(dto.getActiveRoom());</span>
+    }
+    
+    // ✅ REPLACE maintenance schedule (bukan append)
+    // Jika ada maintenance baru, replace yang lama
+<span class="pc bpc" id="L114" title="1 of 4 branches missed.">    if (dto.getMaintenanceStart() != null || dto.getMaintenanceEnd() != null) {</span>
+        
+        // Log old maintenance (jika ada)
+<span class="pc bpc" id="L117" title="1 of 4 branches missed.">        if (room.getMaintenanceStart() != null &amp;&amp; room.getMaintenanceEnd() != null) {</span>
+<span class="fc" id="L118">            System.out.println(&quot;⚠️ Replacing existing maintenance schedule:&quot;);</span>
+<span class="fc" id="L119">            System.out.println(&quot;   Old: &quot; + room.getMaintenanceStart() + &quot; - &quot; + room.getMaintenanceEnd());</span>
+<span class="fc" id="L120">            System.out.println(&quot;   New: &quot; + dto.getMaintenanceStart() + &quot; - &quot; + dto.getMaintenanceEnd());</span>
+        }
+        
+        // ✅ Set maintenance baru (REPLACE)
+<span class="fc" id="L124">        room.setMaintenanceStart(dto.getMaintenanceStart());</span>
+<span class="fc" id="L125">        room.setMaintenanceEnd(dto.getMaintenanceEnd());</span>
+        
+        // ✅ Set availability ke 0 (unavailable) saat ada maintenance
+<span class="pc bpc" id="L128" title="2 of 4 branches missed.">        if (dto.getMaintenanceStart() != null &amp;&amp; dto.getMaintenanceEnd() != null) {</span>
+<span class="fc" id="L129">            room.setAvailabilityStatus(0);</span>
+        }
+    }
+    
+<span class="fc" id="L133">    room.setUpdatedDate(LocalDateTime.now());</span>
+<span class="fc" id="L134">    Room updatedRoom = roomRepository.save(room);</span>
+    
+<span class="fc" id="L136">    return convertToResponseDTO(updatedRoom);</span>
+}
+
+    @Override
+    public void deleteRoom(String roomID) {
+<span class="fc bfc" id="L141" title="All 2 branches covered.">        if (!roomRepository.existsById(roomID)) {</span>
+<span class="fc" id="L142">            throw new RuntimeException(&quot;Room not found with id: &quot; + roomID);</span>
+        }
+<span class="fc" id="L144">        roomRepository.deleteById(roomID);</span>
+<span class="fc" id="L145">    }</span>
+    
+    // ✅ Implement method untuk check booking conflict
+  @Override
+    public boolean hasBookingConflict(String roomID, String startDate, String endDate) {
+        try {
+            // ✅ Parse string dates ke LocalDateTime
+<span class="fc" id="L152">            LocalDateTime maintenanceStart = LocalDateTime.parse(startDate);</span>
+<span class="fc" id="L153">            LocalDateTime maintenanceEnd = LocalDateTime.parse(endDate);</span>
+            
+<span class="fc" id="L155">            System.out.println(&quot;🔍 Checking booking conflicts:&quot;);</span>
+<span class="fc" id="L156">            System.out.println(&quot;   Room ID: &quot; + roomID);</span>
+<span class="fc" id="L157">            System.out.println(&quot;   Maintenance Start: &quot; + maintenanceStart);</span>
+<span class="fc" id="L158">            System.out.println(&quot;   Maintenance End: &quot; + maintenanceEnd);</span>
+            
+            // ✅ Cari booking yang conflict
+<span class="fc" id="L161">            List&lt;Booking&gt; conflicts = bookingRepository.findConflictingBookings(</span>
+                roomID, 
+                maintenanceStart, 
+                maintenanceEnd
+            );
+            
+<span class="fc bfc" id="L167" title="All 2 branches covered.">            if (!conflicts.isEmpty()) {</span>
+<span class="fc" id="L168">                System.out.println(&quot;   ❌ Found &quot; + conflicts.size() + &quot; conflicting booking(s):&quot;);</span>
+<span class="fc bfc" id="L169" title="All 2 branches covered.">                for (Booking b : conflicts) {</span>
+<span class="fc" id="L170">                    System.out.println(&quot;      - Booking ID: &quot; + b.getBookingID() + </span>
+<span class="fc" id="L171">                                     &quot; (Check-in: &quot; + b.getCheckInDate() + </span>
+<span class="fc" id="L172">                                     &quot;, Check-out: &quot; + b.getCheckOutDate() + &quot;)&quot;);</span>
+<span class="fc" id="L173">                }</span>
+<span class="fc" id="L174">                return true;</span>
+            }
+            
+<span class="fc" id="L177">            System.out.println(&quot;   ✅ No booking conflicts found&quot;);</span>
+<span class="fc" id="L178">            return false;</span>
+            
+<span class="fc" id="L180">        } catch (Exception ex) {</span>
+<span class="fc" id="L181">            System.err.println(&quot;   ⚠️ Error checking booking conflict: &quot; + ex.getMessage());</span>
+            // ✅ Jika error parsing atau query, anggap tidak ada conflict (safe)
+<span class="fc" id="L183">            return false;</span>
+        }
+    }
+    
+ private String generateRoomID(RoomType roomType) {
+<span class="fc" id="L188">    String propertyID = roomType.getProperty().getPropertyID();</span>
+<span class="fc" id="L189">    Integer floor = roomType.getFloor();</span>
+    
+<span class="fc" id="L191">    System.out.println(&quot;🔑 Generating Room ID:&quot;);</span>
+<span class="fc" id="L192">    System.out.println(&quot;   Property ID: &quot; + propertyID);</span>
+<span class="fc" id="L193">    System.out.println(&quot;   Floor: &quot; + floor);</span>
+<span class="fc" id="L194">    System.out.println(&quot;   Room Type ID: &quot; + roomType.getRoomTypeID());</span>
+    
+    // ✅ Hitung SEMUA rooms di floor tersebut (cross room types)
+<span class="fc" id="L197">    List&lt;Room&gt; existingRoomsOnFloor = roomRepository.findByPropertyIDAndFloor(</span>
+        propertyID, 
+        floor
+    );
+    
+<span class="fc" id="L202">    System.out.println(&quot;   🔍 Existing Rooms on Floor &quot; + floor + &quot;:&quot;);</span>
+<span class="fc bfc" id="L203" title="All 2 branches covered.">    for (Room r : existingRoomsOnFloor) {</span>
+<span class="fc" id="L204">        System.out.println(&quot;      - &quot; + r.getRoomID() + &quot; (&quot; + r.getRoomType().getName() + &quot;)&quot;);</span>
+<span class="fc" id="L205">    }</span>
+    
+<span class="fc" id="L207">    Integer unitNumber = existingRoomsOnFloor.size() + 1;</span>
+    
+<span class="fc" id="L209">    System.out.println(&quot;   Total Existing Rooms: &quot; + existingRoomsOnFloor.size());</span>
+<span class="fc" id="L210">    System.out.println(&quot;   New Unit Number: &quot; + unitNumber);</span>
+    
+    // ✅ Format: propertyID-floorunit
+<span class="fc" id="L213">    String floorUnit = String.format(&quot;%d%02d&quot;, floor, unitNumber);</span>
+<span class="fc" id="L214">    String roomID = propertyID + &quot;-&quot; + floorUnit;</span>
+    
+<span class="fc" id="L216">    System.out.println(&quot;   ✅ Generated Room ID: &quot; + roomID);</span>
+<span class="fc" id="L217">    System.out.println();</span>
+    
+<span class="fc" id="L219">    return roomID;</span>
+}
+
+  private RoomResponseDTO convertToResponseDTO(Room room) {
+    // ✅ Extract HANYA nomor unit dari Room ID
+<span class="fc" id="L224">    String roomName = &quot;&quot;;</span>
+<span class="fc" id="L225">    String roomID = room.getRoomID();</span>
+    
+<span class="pc bpc" id="L227" title="1 of 4 branches missed.">    if (roomID != null &amp;&amp; roomID.contains(&quot;-&quot;)) {</span>
+<span class="fc" id="L228">        String[] parts = roomID.split(&quot;-&quot;);</span>
+<span class="fc" id="L229">        roomName = parts[parts.length - 1]; // ✅ Ambil bagian terakhir: &quot;204&quot;</span>
+<span class="fc" id="L230">    } else {</span>
+<span class="fc" id="L231">        roomName = roomID; // Fallback jika format tidak sesuai</span>
+    }
+    
+<span class="fc" id="L234">    System.out.println(&quot;🏠 Converting room to DTO:&quot;);</span>
+<span class="fc" id="L235">    System.out.println(&quot;   Full Room ID: &quot; + roomID);</span>
+<span class="fc" id="L236">    System.out.println(&quot;   Extracted Room Name: &quot; + roomName);</span>
+    
+<span class="fc" id="L238">    return RoomResponseDTO.builder()</span>
+<span class="fc" id="L239">            .roomID(room.getRoomID())</span>
+<span class="fc" id="L240">            .name(roomName) // ✅ Set name = nomor unit saja</span>
+<span class="fc" id="L241">            .availabilityStatus(room.getAvailabilityStatus())</span>
+<span class="fc" id="L242">            .availabilityStatusName(getAvailabilityStatusName(room.getAvailabilityStatus()))</span>
+<span class="fc" id="L243">            .activeRoom(room.getActiveRoom())</span>
+<span class="fc" id="L244">            .activeRoomName(getActiveRoomName(room.getActiveRoom()))</span>
+<span class="fc" id="L245">            .maintenanceStart(room.getMaintenanceStart())</span>
+<span class="fc" id="L246">            .maintenanceEnd(room.getMaintenanceEnd())</span>
+<span class="pc bpc" id="L247" title="1 of 2 branches missed.">            .capacity(room.getRoomType() != null ? room.getRoomType().getCapacity() : null)</span>
+<span class="pc bpc" id="L248" title="1 of 2 branches missed.">            .price(room.getRoomType() != null ? room.getRoomType().getPrice() : null)</span>
+<span class="pc bpc" id="L249" title="1 of 2 branches missed.">            .floor(room.getRoomType() != null ? room.getRoomType().getFloor() : null)</span>
+<span class="pc bpc" id="L250" title="1 of 2 branches missed.">            .roomTypeID(room.getRoomType() != null ? room.getRoomType().getRoomTypeID() : null)</span>
+<span class="pc bpc" id="L251" title="1 of 2 branches missed.">            .roomTypeName(room.getRoomType() != null ? room.getRoomType().getName() : null)</span>
+<span class="fc" id="L252">            .createdDate(room.getCreatedDate())</span>
+<span class="fc" id="L253">            .updatedDate(room.getUpdatedDate())</span>
+<span class="fc" id="L254">            .build();</span>
+}
+
+// ✅ Helper methods untuk status names
+private String getAvailabilityStatusName(Integer status) {
+<span class="pc bpc" id="L259" title="1 of 2 branches missed.">    if (status == null) return &quot;Unknown&quot;;</span>
+<span class="pc bpc" id="L260" title="1 of 3 branches missed.">    return switch (status) {</span>
+<span class="fc" id="L261">        case 0 -&gt; &quot;Unavailable&quot;;</span>
+<span class="fc" id="L262">        case 1 -&gt; &quot;Available&quot;;</span>
+<span class="nc" id="L263">        default -&gt; &quot;Unknown&quot;;</span>
+    };
+}
+
+private String getActiveRoomName(Integer status) {
+<span class="pc bpc" id="L268" title="1 of 2 branches missed.">    if (status == null) return &quot;Unknown&quot;;</span>
+<span class="pc bpc" id="L269" title="1 of 3 branches missed.">    return switch (status) {</span>
+<span class="fc" id="L270">        case 0 -&gt; &quot;Inactive&quot;;</span>
+<span class="fc" id="L271">        case 1 -&gt; &quot;Active&quot;;</span>
+<span class="nc" id="L272">        default -&gt; &quot;Unknown&quot;;</span>
+    };
+}
+  @Override
+    public List&lt;RoomResponseDTO&gt; getRoomsByPropertyAndFloor(String propertyID, Integer floor) {
+    // Get all room types for this property
+<span class="fc" id="L278">    List&lt;RoomType&gt; roomTypes = roomTypeRepository.findByProperty_PropertyID(propertyID);</span>
+    
+    // Filter room types by floor dan ambil semua rooms
+<span class="fc" id="L281">    List&lt;Room&gt; rooms = new ArrayList&lt;&gt;();</span>
+<span class="fc bfc" id="L282" title="All 2 branches covered.">    for (RoomType roomType : roomTypes) {</span>
+<span class="pc bpc" id="L283" title="1 of 4 branches missed.">        if (floor != null &amp;&amp; roomType.getFloor() == floor) {</span>
+<span class="fc" id="L284">            List&lt;Room&gt; roomsForType = roomRepository.findByRoomType_RoomTypeID(roomType.getRoomTypeID());</span>
+<span class="fc" id="L285">            rooms.addAll(roomsForType);</span>
+        }
+<span class="fc" id="L287">    }</span>
+    
+<span class="fc" id="L289">    return rooms.stream()</span>
+<span class="fc" id="L290">            .map(this::convertToResponseDTO)  // ✅ BENAR - gunakan method yang ada</span>
+<span class="fc" id="L291">            .collect(Collectors.toList());</span>
+}
+@Override
+    @Transactional
+    public void autoUpdateRoomMaintenanceStatus() {
+<span class="fc" id="L296">        LocalDateTime now = LocalDateTime.now();</span>
+        
+<span class="fc" id="L298">        System.out.println(&quot;🔧 Auto-updating room maintenance status...&quot;);</span>
+<span class="fc" id="L299">        System.out.println(&quot;   Current Time: &quot; + now);</span>
+        
+<span class="fc" id="L301">        List&lt;Room&gt; allRooms = roomRepository.findAll();</span>
+<span class="fc" id="L302">        int updatedCount = 0;</span>
+        
+<span class="fc bfc" id="L304" title="All 2 branches covered.">        for (Room room : allRooms) {</span>
+            // ✅ Cek apakah maintenance sudah selesai
+<span class="fc bfc" id="L306" title="All 4 branches covered.">            if (room.getMaintenanceEnd() != null &amp;&amp; room.getMaintenanceEnd().isBefore(now)) {</span>
+<span class="fc" id="L307">                System.out.println(&quot;✅ Room &quot; + room.getRoomID() + &quot;: Maintenance ended&quot;);</span>
+<span class="fc" id="L308">                System.out.println(&quot;   Maintenance End: &quot; + room.getMaintenanceEnd());</span>
+<span class="fc" id="L309">                System.out.println(&quot;   Current Time: &quot; + now);</span>
+                
+                // ✅ Clear maintenance schedule
+<span class="fc" id="L312">                room.setMaintenanceStart(null);</span>
+<span class="fc" id="L313">                room.setMaintenanceEnd(null);</span>
+                
+                // ✅ Set availability back to Available (1)
+<span class="fc" id="L316">                room.setAvailabilityStatus(1);</span>
+<span class="fc" id="L317">                room.setUpdatedDate(now);</span>
+                
+<span class="fc" id="L319">                roomRepository.save(room);</span>
+<span class="fc" id="L320">                updatedCount++;</span>
+                
+<span class="fc" id="L322">                System.out.println(&quot;   Status: Unavailable → Available&quot;);</span>
+<span class="fc" id="L323">                System.out.println(&quot;   Maintenance cleared&quot;);</span>
+            }
+<span class="fc" id="L325">        }</span>
+        
+<span class="fc" id="L327">        System.out.println(&quot;✅ Auto-update complete: &quot; + updatedCount + &quot; rooms updated&quot;);</span>
+<span class="fc" id="L328">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

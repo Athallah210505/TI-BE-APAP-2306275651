@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>RoomRestController.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">accommodation-2306275651-be</a> &gt; <a href="index.source.html" class="el_package">apap.ti._5.accommodation_2306275651_be.restcontroller</a> &gt; <span class="el_source">RoomRestController.java</span></div><h1>RoomRestController.java</h1><pre class="source lang-java linenums">package apap.ti._5.accommodation_2306275651_be.restcontroller;
+
+import apap.ti._5.accommodation_2306275651_be.restdto.request.room.CreateRoomRequestDTO;
+import apap.ti._5.accommodation_2306275651_be.restdto.request.room.UpdateRoomRequestDTO;
+import apap.ti._5.accommodation_2306275651_be.restdto.response.BaseResponseDTO;
+import apap.ti._5.accommodation_2306275651_be.restdto.response.room.RoomResponseDTO;
+import apap.ti._5.accommodation_2306275651_be.restservice.RoomRestService;
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+
+@RestController
+@RequestMapping(&quot;/api/rooms&quot;)
+@RequiredArgsConstructor
+public class RoomRestController {
+    
+    private final RoomRestService roomRestService;
+    
+    @PostMapping
+    public ResponseEntity&lt;BaseResponseDTO&lt;RoomResponseDTO&gt;&gt; createRoom(
+            @Valid @RequestBody CreateRoomRequestDTO request) {
+<span class="nc" id="L26">        RoomResponseDTO response = roomRestService.createRoom(request);</span>
+<span class="nc" id="L27">        return ResponseEntity.status(HttpStatus.CREATED)</span>
+<span class="nc" id="L28">                .body(BaseResponseDTO.success(&quot;Room created successfully&quot;, response));</span>
+    }
+    
+    @GetMapping(&quot;/{id}&quot;)
+    public ResponseEntity&lt;BaseResponseDTO&lt;RoomResponseDTO&gt;&gt; getRoom(@PathVariable String id) {
+<span class="fc" id="L33">        RoomResponseDTO response = roomRestService.getRoomById(id);</span>
+<span class="fc" id="L34">        return ResponseEntity.ok(BaseResponseDTO.success(&quot;Room retrieved successfully&quot;, response));</span>
+    }
+    
+    @GetMapping
+    public ResponseEntity&lt;BaseResponseDTO&lt;List&lt;RoomResponseDTO&gt;&gt;&gt; getAllRooms() {
+<span class="fc" id="L39">        List&lt;RoomResponseDTO&gt; responses = roomRestService.getAllRooms();</span>
+<span class="fc" id="L40">        return ResponseEntity.ok(BaseResponseDTO.success(&quot;Rooms retrieved successfully&quot;, responses));</span>
+    }
+    
+    @GetMapping(&quot;/room-type/{roomTypeId}&quot;)
+    public ResponseEntity&lt;BaseResponseDTO&lt;List&lt;RoomResponseDTO&gt;&gt;&gt; getRoomsByRoomType(
+            @PathVariable String roomTypeId) {
+<span class="fc" id="L46">        List&lt;RoomResponseDTO&gt; responses = roomRestService.getRoomsByRoomType(roomTypeId);</span>
+<span class="fc" id="L47">        return ResponseEntity.ok(BaseResponseDTO.success(&quot;Room type rooms retrieved successfully&quot;, responses));</span>
+    }
+    
+    @GetMapping(&quot;/available&quot;)
+    public ResponseEntity&lt;BaseResponseDTO&lt;List&lt;RoomResponseDTO&gt;&gt;&gt; getAvailableRooms() {
+<span class="fc" id="L52">        List&lt;RoomResponseDTO&gt; responses = roomRestService.getAvailableRooms();</span>
+<span class="fc" id="L53">        return ResponseEntity.ok(BaseResponseDTO.success(&quot;Available rooms retrieved successfully&quot;, responses));</span>
+    }
+    
+    @PutMapping(&quot;/{id}&quot;)
+    public ResponseEntity&lt;BaseResponseDTO&lt;RoomResponseDTO&gt;&gt; updateRoom(
+            @PathVariable String id,
+            @Valid @RequestBody UpdateRoomRequestDTO request) {
+<span class="fc" id="L60">        RoomResponseDTO response = roomRestService.updateRoom(id, request);</span>
+<span class="fc" id="L61">        return ResponseEntity.ok(BaseResponseDTO.success(&quot;Room updated successfully&quot;, response));</span>
+    }
+    
+    @DeleteMapping(&quot;/{id}&quot;)
+    public ResponseEntity&lt;BaseResponseDTO&lt;Void&gt;&gt; deleteRoom(@PathVariable String id) {
+<span class="fc" id="L66">        roomRestService.deleteRoom(id);</span>
+<span class="fc" id="L67">        return ResponseEntity.ok(BaseResponseDTO.success(&quot;Room deleted successfully&quot;, null));</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

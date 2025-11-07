@@ -1,0 +1,385 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>PropertyRestServiceImpl.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">accommodation-2306275651-be</a> &gt; <a href="index.source.html" class="el_package">apap.ti._5.accommodation_2306275651_be.restservice</a> &gt; <span class="el_source">PropertyRestServiceImpl.java</span></div><h1>PropertyRestServiceImpl.java</h1><pre class="source lang-java linenums">package apap.ti._5.accommodation_2306275651_be.restservice;
+
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Optional;
+import java.util.Set;
+import java.util.UUID;
+import java.util.stream.Collectors;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import apap.ti._5.accommodation_2306275651_be.model.Property;
+import apap.ti._5.accommodation_2306275651_be.repository.BookingRepository;
+import apap.ti._5.accommodation_2306275651_be.repository.PropertyRepository;
+import apap.ti._5.accommodation_2306275651_be.restdto.request.property.CreatePropertyRequestDTO;
+import apap.ti._5.accommodation_2306275651_be.restdto.request.property.UpdatePropertyRequestDTO;
+import apap.ti._5.accommodation_2306275651_be.restdto.request.room.CreateRoomRequestDTO;
+import apap.ti._5.accommodation_2306275651_be.restdto.request.roomtype.CreateRoomTypeRequestDTO;
+import apap.ti._5.accommodation_2306275651_be.restdto.request.roomtype.UpdateRoomTypeRequestDTO;
+import apap.ti._5.accommodation_2306275651_be.restdto.response.property.PropertyResponseDTO;
+import apap.ti._5.accommodation_2306275651_be.restdto.response.property.RoomTypeInfoDTO;
+import apap.ti._5.accommodation_2306275651_be.restdto.response.room.RoomResponseDTO;
+import apap.ti._5.accommodation_2306275651_be.restdto.response.roomtype.RoomTypeResponseDTO;
+
+@Service
+@Transactional
+<span class="fc" id="L31">public class PropertyRestServiceImpl implements PropertyRestService {</span>
+    
+    @Autowired
+    private PropertyRepository propertyRepository;
+    
+    @Autowired
+    private RoomTypeRestService roomTypeRestService;
+    
+    @Autowired
+    private RoomRestService roomRestService;
+
+    @Autowired
+    private BookingRepository bookingRepository;
+    
+    @Override
+    public PropertyResponseDTO createProperty(CreatePropertyRequestDTO createPropertyRequestDTO) {
+        
+        // ✅ Validasi duplikasi property-roomtype-floor dalam request
+<span class="fc" id="L49">        Set&lt;String&gt; roomTypeCombinations = new HashSet&lt;&gt;();</span>
+<span class="fc bfc" id="L50" title="All 2 branches covered.">        for (CreateRoomRequestDTO roomType : createPropertyRequestDTO.getRoomTypes()) {</span>
+<span class="fc" id="L51">            String combination = roomType.getRoomTypeName() + &quot;-&quot; + roomType.getFloor();</span>
+<span class="pc bpc" id="L52" title="1 of 2 branches missed.">            if (!roomTypeCombinations.add(combination)) {</span>
+<span class="nc" id="L53">                throw new RuntimeException(&quot;Duplikasi kombinasi tipe kamar–lantai tidak diperbolehkan: &quot; + </span>
+<span class="nc" id="L54">                                         roomType.getRoomTypeName() + &quot; di lantai &quot; + roomType.getFloor());</span>
+            }
+<span class="fc" id="L56">        }</span>
+        
+        // ✅ Hitung total rooms dari semua room types
+<span class="fc" id="L59">        int calculatedTotalRoom = createPropertyRequestDTO.getRoomTypes().stream()</span>
+<span class="fc" id="L60">                .mapToInt(CreateRoomRequestDTO::getUnit)</span>
+<span class="fc" id="L61">                .sum();</span>
+        
+        // ✅ Validasi total room match
+<span class="pc bpc" id="L64" title="1 of 2 branches missed.">        if (calculatedTotalRoom != createPropertyRequestDTO.getTotalRoom().intValue()) {</span>
+<span class="nc" id="L65">            throw new RuntimeException(&quot;Total room tidak sesuai. Expected: &quot; + calculatedTotalRoom + </span>
+<span class="nc" id="L66">                                     &quot;, Got: &quot; + createPropertyRequestDTO.getTotalRoom());</span>
+        }
+        
+        // ✅ Generate property ID sesuai format baru
+<span class="fc" id="L70">        String propertyID = generatePropertyID(createPropertyRequestDTO);</span>
+        
+        // ✅ Create Property
+<span class="fc" id="L73">        Property property = Property.builder()</span>
+<span class="fc" id="L74">                .propertyID(propertyID)</span>
+<span class="fc" id="L75">                .propertyName(createPropertyRequestDTO.getPropertyName())</span>
+<span class="fc" id="L76">                .type(createPropertyRequestDTO.getType())</span>
+<span class="fc" id="L77">                .address(createPropertyRequestDTO.getAddress())</span>
+<span class="fc" id="L78">                .province(createPropertyRequestDTO.getProvince())</span>
+<span class="fc" id="L79">                .description(createPropertyRequestDTO.getDescription())</span>
+<span class="fc" id="L80">                .totalRoom(createPropertyRequestDTO.getTotalRoom())</span>
+<span class="fc" id="L81">                .activeStatus(1) // Default active</span>
+<span class="fc" id="L82">                .income(0) // Default 0</span>
+<span class="fc" id="L83">                .ownerName(createPropertyRequestDTO.getOwnerName())</span>
+<span class="fc" id="L84">                .ownerID(UUID.fromString(createPropertyRequestDTO.getOwnerID()))</span>
+<span class="fc" id="L85">                .createdDate(LocalDateTime.now())</span>
+<span class="fc" id="L86">                .updatedDate(LocalDateTime.now())</span>
+<span class="fc" id="L87">                .build();</span>
+        
+<span class="fc" id="L89">        Property savedProperty = propertyRepository.save(property);</span>
+        
+        // ✅ List untuk menyimpan room type info dengan room IDs
+<span class="fc" id="L92">        List&lt;RoomTypeInfoDTO&gt; roomTypeInfoList = new ArrayList&lt;&gt;();</span>
+        
+        // ✅ Create Room Types dan Rooms
+<span class="fc bfc" id="L95" title="All 2 branches covered.">        for (CreateRoomRequestDTO roomTypeData : createPropertyRequestDTO.getRoomTypes()) {</span>
+            
+            // Create RoomType
+<span class="fc" id="L98">            CreateRoomTypeRequestDTO roomTypeDTO = CreateRoomTypeRequestDTO.builder()</span>
+<span class="fc" id="L99">                    .name(roomTypeData.getRoomTypeName())</span>
+<span class="fc" id="L100">                    .price(roomTypeData.getPrice())</span>
+<span class="fc" id="L101">                    .description(roomTypeData.getRoomTypeDescription())</span>
+<span class="fc" id="L102">                    .capacity(roomTypeData.getCapacity())</span>
+<span class="fc" id="L103">                    .facility(roomTypeData.getFacility())</span>
+<span class="fc" id="L104">                    .floor(roomTypeData.getFloor())</span>
+<span class="fc" id="L105">                    .propertyID(propertyID)</span>
+<span class="fc" id="L106">                    .unitCount(roomTypeData.getUnit())</span>
+<span class="fc" id="L107">                    .build();</span>
+            
+<span class="fc" id="L109">            RoomTypeResponseDTO createdRoomType = roomTypeRestService.createRoomType(roomTypeDTO);</span>
+            
+            // ✅ List untuk menyimpan room IDs yang dibuat
+<span class="fc" id="L112">            List&lt;String&gt; roomIDs = new ArrayList&lt;&gt;();</span>
+            
+            // ✅ Create Rooms for this room type
+<span class="fc bfc" id="L115" title="All 2 branches covered.">           for (int i = 1; i &lt;= roomTypeData.getUnit(); i++) {</span>
+                    try {
+<span class="fc" id="L117">                        CreateRoomRequestDTO createRoomDTO = CreateRoomRequestDTO.builder()</span>
+                                // ✅ HAPUS name, biarkan RoomRestService yang generate
+                                // .name(generateRoomName(propertyID, roomTypeData.getFloor(), i))
+<span class="fc" id="L120">                                .roomTypeID(createdRoomType.getRoomTypeID())</span>
+<span class="fc" id="L121">                                .availabilityStatus(1)</span>
+<span class="fc" id="L122">                                .activeRoom(1)</span>
+<span class="fc" id="L123">                                .build();</span>
+                        
+<span class="fc" id="L125">                        System.out.println(&quot;   🏠 Creating Room &quot; + i + &quot;/&quot; + roomTypeData.getUnit());</span>
+                        
+<span class="fc" id="L127">                        RoomResponseDTO createdRoom = roomRestService.createRoom(createRoomDTO);</span>
+<span class="fc" id="L128">                        roomIDs.add(createdRoom.getRoomID());</span>
+                        
+<span class="fc" id="L130">                        System.out.println(&quot;      ✅ Room Created: &quot; + createdRoom.getRoomID());</span>
+                        
+<span class="nc" id="L132">                    } catch (Exception ex) {</span>
+<span class="nc" id="L133">                        System.err.println(&quot;      ❌ ERROR creating room &quot; + i + &quot;: &quot; + ex.getMessage());</span>
+<span class="nc" id="L134">                        ex.printStackTrace();</span>
+<span class="nc" id="L135">                        throw new RuntimeException(&quot;Failed to create room &quot; + i + &quot; for room type &quot; + </span>
+<span class="nc" id="L136">                                                roomTypeData.getRoomTypeName() + &quot;: &quot; + ex.getMessage(), ex);</span>
+<span class="fc" id="L137">                    }</span>
+                }
+            
+            // ✅ Build room type info dengan room IDs (gunakan class terpisah)
+<span class="fc" id="L141">            RoomTypeInfoDTO roomTypeInfo = RoomTypeInfoDTO.builder()</span>
+<span class="fc" id="L142">                    .roomTypeID(createdRoomType.getRoomTypeID())</span>
+<span class="fc" id="L143">                    .roomTypeName(createdRoomType.getName())</span>
+<span class="fc" id="L144">                    .floor(createdRoomType.getFloor())</span>
+<span class="fc" id="L145">                    .capacity(createdRoomType.getCapacity())</span>
+<span class="fc" id="L146">                    .price(createdRoomType.getPrice())</span>
+<span class="fc" id="L147">                    .facility(createdRoomType.getFacility())</span>
+<span class="fc" id="L148">                    .description(createdRoomType.getDescription())</span>
+<span class="fc" id="L149">                    .roomIDs(roomIDs)</span>
+<span class="fc" id="L150">                    .build();</span>
+            
+<span class="fc" id="L152">            roomTypeInfoList.add(roomTypeInfo);</span>
+<span class="fc" id="L153">        }</span>
+        
+        // ✅ Convert to response DTO dengan room type info
+<span class="fc" id="L156">        return convertToPropertyResponseDTO(savedProperty, roomTypeInfoList);</span>
+    }
+    
+    // ✅ Helper method untuk generate property ID
+    private String generatePropertyID(CreatePropertyRequestDTO dto) {
+        // Get type prefix (HOT, VIL, APT)
+<span class="fc" id="L162">        String typePrefix = getTypePrefix(dto.getType());</span>
+        
+        // 4 karakter terakhir dari UUID Owner
+<span class="pc bpc" id="L165" title="2 of 4 branches missed.">        String ownerSuffix = dto.getOwnerID() != null &amp;&amp; dto.getOwnerID().length() &gt;= 4 </span>
+<span class="fc" id="L166">            ? dto.getOwnerID().substring(dto.getOwnerID().length() - 4)</span>
+<span class="pc" id="L167">            : &quot;0000&quot;;</span>
+        
+        // 3 digit counter properti ke-N (hitung dari database)
+<span class="fc" id="L170">        long propertyCount = propertyRepository.count() + 1;</span>
+<span class="fc" id="L171">        String counter = String.format(&quot;%03d&quot;, propertyCount);</span>
+        
+        // ✅ Format: PREFIX-4chars-3digits
+        // Contoh: APT-0000-004 (untuk Apartemen, owner ending 0000, property ke-4)
+<span class="fc" id="L175">        return typePrefix + &quot;-&quot; + ownerSuffix + &quot;-&quot; + counter;</span>
+    }
+    
+    
+    
+    @Override
+    public PropertyResponseDTO updateProperty(String id, UpdatePropertyRequestDTO updatePropertyRequestDTO) {
+<span class="fc" id="L182">        Optional&lt;Property&gt; propertyOpt = propertyRepository.findById(id);</span>
+        
+<span class="fc bfc" id="L184" title="All 2 branches covered.">        if (propertyOpt.isEmpty()) {</span>
+<span class="fc" id="L185">            return null;</span>
+        }
+        
+<span class="fc" id="L188">        Property existingProperty = propertyOpt.get();</span>
+        
+        // ✅ Update property fields
+<span class="pc bpc" id="L191" title="1 of 2 branches missed.">        existingProperty.setPropertyName(updatePropertyRequestDTO.getPropertyName() != null ? </span>
+<span class="pc" id="L192">                                       updatePropertyRequestDTO.getPropertyName() : existingProperty.getPropertyName());</span>
+        
+<span class="fc bfc" id="L194" title="All 2 branches covered.">        if (updatePropertyRequestDTO.getType() != null) {</span>
+<span class="fc" id="L195">            existingProperty.setType(updatePropertyRequestDTO.getType());</span>
+        }
+        
+<span class="fc bfc" id="L198" title="All 2 branches covered.">        existingProperty.setAddress(updatePropertyRequestDTO.getAddress() != null ? </span>
+<span class="fc" id="L199">                                  updatePropertyRequestDTO.getAddress() : existingProperty.getAddress());</span>
+<span class="fc bfc" id="L200" title="All 2 branches covered.">        existingProperty.setProvince(updatePropertyRequestDTO.getProvince() != null ? </span>
+<span class="fc" id="L201">                                   updatePropertyRequestDTO.getProvince() : existingProperty.getProvince());</span>
+<span class="fc bfc" id="L202" title="All 2 branches covered.">        existingProperty.setDescription(updatePropertyRequestDTO.getDescription() != null ? </span>
+<span class="fc" id="L203">                                      updatePropertyRequestDTO.getDescription() : existingProperty.getDescription());</span>
+<span class="fc bfc" id="L204" title="All 2 branches covered.">        existingProperty.setTotalRoom(updatePropertyRequestDTO.getTotalRoom() != null ? </span>
+<span class="fc" id="L205">                                    updatePropertyRequestDTO.getTotalRoom() : existingProperty.getTotalRoom());</span>
+<span class="fc bfc" id="L206" title="All 2 branches covered.">        existingProperty.setActiveStatus(updatePropertyRequestDTO.getActiveStatus() != null ? </span>
+<span class="fc" id="L207">                                       updatePropertyRequestDTO.getActiveStatus() : existingProperty.getActiveStatus());</span>
+<span class="fc" id="L208">        existingProperty.setUpdatedDate(LocalDateTime.now());</span>
+        
+<span class="fc" id="L210">        Property updatedProperty = propertyRepository.save(existingProperty);</span>
+        
+        // ✅ Update room types jika ada di request
+<span class="pc bpc" id="L213" title="1 of 4 branches missed.">        if (updatePropertyRequestDTO.getRoomTypes() != null &amp;&amp; !updatePropertyRequestDTO.getRoomTypes().isEmpty()) {</span>
+<span class="nc bnc" id="L214" title="All 2 branches missed.">            for (UpdateRoomTypeRequestDTO roomTypeDTO : updatePropertyRequestDTO.getRoomTypes()) {</span>
+<span class="nc" id="L215">                roomTypeRestService.updateRoomType(roomTypeDTO.getRoomTypeID(), roomTypeDTO);</span>
+<span class="nc" id="L216">            }</span>
+        }
+        
+        // ✅ Fetch updated room types
+<span class="fc" id="L220">        List&lt;RoomTypeResponseDTO&gt; roomTypes = roomTypeRestService.getRoomTypesByProperty(id);</span>
+<span class="fc" id="L221">        List&lt;RoomTypeInfoDTO&gt; roomTypeInfoList = new ArrayList&lt;&gt;();</span>
+        
+<span class="pc bpc" id="L223" title="1 of 2 branches missed.">        for (RoomTypeResponseDTO roomType : roomTypes) {</span>
+<span class="nc" id="L224">            List&lt;RoomResponseDTO&gt; rooms = roomRestService.getRoomsByRoomType(roomType.getRoomTypeID());</span>
+<span class="nc" id="L225">            List&lt;String&gt; roomIDs = rooms.stream()</span>
+<span class="nc" id="L226">                    .map(RoomResponseDTO::getRoomID)</span>
+<span class="nc" id="L227">                    .collect(Collectors.toList());</span>
+            
+<span class="nc" id="L229">            RoomTypeInfoDTO roomTypeInfo = RoomTypeInfoDTO.builder()</span>
+<span class="nc" id="L230">                    .roomTypeID(roomType.getRoomTypeID())</span>
+<span class="nc" id="L231">                    .roomTypeName(roomType.getName())</span>
+<span class="nc" id="L232">                    .floor(roomType.getFloor())</span>
+<span class="nc" id="L233">                    .capacity(roomType.getCapacity())</span>
+<span class="nc" id="L234">                    .price(roomType.getPrice())</span>
+<span class="nc" id="L235">                    .facility(roomType.getFacility())</span>
+<span class="nc" id="L236">                    .description(roomType.getDescription())</span>
+<span class="nc" id="L237">                    .roomIDs(roomIDs)</span>
+<span class="nc" id="L238">                    .build();</span>
+            
+<span class="nc" id="L240">            roomTypeInfoList.add(roomTypeInfo);</span>
+<span class="nc" id="L241">        }</span>
+        
+<span class="fc" id="L243">        return convertToPropertyResponseDTO(updatedProperty, roomTypeInfoList);</span>
+    }
+    
+    private String getTypePrefix(Integer type) {
+<span class="pc bpc" id="L247" title="1 of 4 branches missed.">        return switch (type) {</span>
+<span class="fc" id="L248">            case 1 -&gt; &quot;HOT&quot;;</span>
+<span class="fc" id="L249">            case 2 -&gt; &quot;VIL&quot;;</span>
+<span class="fc" id="L250">            case 3 -&gt; &quot;APT&quot;;</span>
+<span class="nc" id="L251">            default -&gt; &quot;UNK&quot;;</span>
+        };
+    }
+    
+    @Override
+    public List&lt;PropertyResponseDTO&gt; getAllProperties() {
+<span class="fc" id="L257">        List&lt;Property&gt; properties = propertyRepository.findAll();</span>
+<span class="fc" id="L258">        return properties.stream()</span>
+<span class="fc" id="L259">                .map(p -&gt; convertToPropertyResponseDTO(p, null))</span>
+<span class="fc" id="L260">                .collect(Collectors.toList());</span>
+    }
+    
+    @Override
+    public List&lt;PropertyResponseDTO&gt; getPropertiesByOwner(String ownerId) {
+<span class="fc" id="L265">        List&lt;Property&gt; properties = propertyRepository.findByOwnerID(UUID.fromString(ownerId));</span>
+<span class="fc" id="L266">        return properties.stream()</span>
+<span class="fc" id="L267">                .map(p -&gt; convertToPropertyResponseDTO(p, null))</span>
+<span class="fc" id="L268">                .collect(Collectors.toList());</span>
+    }
+    
+    @Override
+public PropertyResponseDTO getPropertyById(String id) {
+<span class="fc" id="L273">    Optional&lt;Property&gt; propertyOpt = propertyRepository.findById(id);</span>
+<span class="fc bfc" id="L274" title="All 2 branches covered.">    if (propertyOpt.isEmpty()) {</span>
+<span class="fc" id="L275">        return null;</span>
+    }
+    
+<span class="fc" id="L278">    Property property = propertyOpt.get();</span>
+    
+    // ✅ Fetch room types untuk property ini
+<span class="fc" id="L281">    List&lt;RoomTypeResponseDTO&gt; roomTypes = roomTypeRestService.getRoomTypesByProperty(id);</span>
+    
+    // ✅ Build room type info dengan FULL room objects (not just IDs)
+<span class="fc" id="L284">    List&lt;RoomTypeInfoDTO&gt; roomTypeInfoList = new ArrayList&lt;&gt;();</span>
+    
+<span class="fc bfc" id="L286" title="All 2 branches covered.">    for (RoomTypeResponseDTO roomType : roomTypes) {</span>
+        // ✅ Get FULL room objects untuk room type ini (with maintenance data)
+<span class="fc" id="L288">        List&lt;RoomResponseDTO&gt; rooms = roomRestService.getRoomsByRoomType(roomType.getRoomTypeID());</span>
+        
+        // ✅ Build room type info with FULL room objects
+<span class="fc" id="L291">        RoomTypeInfoDTO roomTypeInfo = RoomTypeInfoDTO.builder()</span>
+<span class="fc" id="L292">                .roomTypeID(roomType.getRoomTypeID())</span>
+<span class="fc" id="L293">                .roomTypeName(roomType.getName())</span>
+<span class="fc" id="L294">                .floor(roomType.getFloor())</span>
+<span class="fc" id="L295">                .capacity(roomType.getCapacity())</span>
+<span class="fc" id="L296">                .price(roomType.getPrice())</span>
+<span class="fc" id="L297">                .facility(roomType.getFacility())</span>
+<span class="fc" id="L298">                .description(roomType.getDescription())</span>
+<span class="fc" id="L299">                .listRoom(rooms)  </span>
+<span class="fc" id="L300">                .createdDate(roomType.getCreatedDate())</span>
+<span class="fc" id="L301">                .updatedDate(roomType.getUpdatedDate())</span>
+<span class="fc" id="L302">                .build();</span>
+        
+<span class="fc" id="L304">        roomTypeInfoList.add(roomTypeInfo);</span>
+<span class="fc" id="L305">    }</span>
+    
+<span class="fc" id="L307">    return convertToPropertyResponseDTO(property, roomTypeInfoList);</span>
+}
+    
+   @Override
+    public PropertyResponseDTO deleteProperty(String id) {
+<span class="fc" id="L312">        Optional&lt;Property&gt; propertyOpt = propertyRepository.findById(id);</span>
+        
+<span class="fc bfc" id="L314" title="All 2 branches covered.">        if (propertyOpt.isEmpty()) {</span>
+<span class="fc" id="L315">            return null;</span>
+        }
+        
+<span class="fc" id="L318">        Property existingProperty = propertyOpt.get();</span>
+        
+        // ✅ FIX: Cek apakah ada booking aktif (status 0 atau 1)
+<span class="fc" id="L321">        long activeBookingsCount = bookingRepository.countActiveBookingsByPropertyID(id);</span>
+        
+<span class="fc bfc" id="L323" title="All 2 branches covered.">        if (activeBookingsCount &gt; 0) {</span>
+<span class="fc" id="L324">            System.err.println(&quot;Cannot delete property:&quot;);</span>
+<span class="fc" id="L325">            System.err.println(&quot;   Property ID: &quot; + id);</span>
+<span class="fc" id="L326">            System.err.println(&quot;   Active Bookings: &quot; + activeBookingsCount);</span>
+            
+<span class="fc" id="L328">            throw new RuntimeException(</span>
+                &quot;Tidak dapat menghapus property. &quot; +
+                &quot;Terdapat &quot; + activeBookingsCount + &quot; booking aktif pada property ini. &quot; +
+                &quot;Harap batalkan atau selesaikan booking terlebih dahulu.&quot;
+            );
+        }
+        
+        // ✅ Jika tidak ada booking aktif, lakukan soft delete
+<span class="fc" id="L336">        System.out.println(&quot;🗑️ Deleting property (soft delete):&quot;);</span>
+<span class="fc" id="L337">        System.out.println(&quot;   Property ID: &quot; + id);</span>
+<span class="fc" id="L338">        System.out.println(&quot;   Property Name: &quot; + existingProperty.getPropertyName());</span>
+<span class="fc" id="L339">        System.out.println(&quot;   Active Bookings: 0&quot;);</span>
+        
+<span class="fc" id="L341">        existingProperty.setActiveStatus(0);</span>
+<span class="fc" id="L342">        existingProperty.setUpdatedDate(LocalDateTime.now());</span>
+        
+<span class="fc" id="L344">        Property deletedProperty = propertyRepository.save(existingProperty);</span>
+        
+<span class="fc" id="L346">        System.out.println(&quot;Property soft deleted successfully&quot;);</span>
+        
+<span class="fc" id="L348">        return convertToPropertyResponseDTO(deletedProperty, null);</span>
+    }
+    
+    // ✅ Update convertToPropertyResponseDTO dengan room type info
+    private PropertyResponseDTO convertToPropertyResponseDTO(Property property, List&lt;RoomTypeInfoDTO&gt; roomTypeInfoList) {
+<span class="fc" id="L353">        String typeName = getTypeName(property.getType());</span>
+<span class="fc bfc" id="L354" title="All 2 branches covered.">        String activeStatusName = property.getActiveStatus() == 1 ? &quot;Active&quot; : &quot;Non-Active&quot;;</span>
+        
+<span class="fc" id="L356">        return PropertyResponseDTO.builder()</span>
+<span class="fc" id="L357">                .propertyID(property.getPropertyID())</span>
+<span class="fc" id="L358">                .propertyName(property.getPropertyName())</span>
+<span class="fc" id="L359">                .type(property.getType())</span>
+<span class="fc" id="L360">                .typeName(typeName)</span>
+<span class="fc" id="L361">                .address(property.getAddress())</span>
+<span class="fc" id="L362">                .province(property.getProvince())</span>
+<span class="fc" id="L363">                .description(property.getDescription())</span>
+<span class="fc" id="L364">                .totalRoom(property.getTotalRoom())</span>
+<span class="fc" id="L365">                .activeStatus(property.getActiveStatus())</span>
+<span class="fc" id="L366">                .activeStatusName(activeStatusName)</span>
+<span class="fc" id="L367">                .income(property.getIncome())</span>
+<span class="fc" id="L368">                .ownerName(property.getOwnerName())</span>
+<span class="fc" id="L369">                .ownerID(property.getOwnerID().toString())</span>
+<span class="fc" id="L370">                .createdDate(property.getCreatedDate())</span>
+<span class="fc" id="L371">                .updatedDate(property.getUpdatedDate())</span>
+<span class="fc" id="L372">                .roomTypes(roomTypeInfoList) // ✅ Include room type info</span>
+<span class="fc" id="L373">                .build();</span>
+    }
+    
+    private String getTypeName(int type) {
+<span class="pc bpc" id="L377" title="1 of 4 branches missed.">        return switch (type) {</span>
+<span class="fc" id="L378">            case 1 -&gt; &quot;Hotel&quot;;</span>
+<span class="fc" id="L379">            case 2 -&gt; &quot;Villa&quot;;</span>
+<span class="fc" id="L380">            case 3 -&gt; &quot;Apartemen&quot;;</span>
+<span class="nc" id="L381">            default -&gt; &quot;Unknown&quot;;</span>
+        };
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.13.202504020838</span></div></body></html>

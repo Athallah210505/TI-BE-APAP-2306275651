@@ -1,0 +1,137 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="apap.ti._5.accommodation_2306275651_be.restservice.PropertyRestServiceTest" tests="21" skipped="0" failures="0" errors="0" timestamp="2025-11-07T03:49:49.044Z" hostname="Athallahs-Laptop.local" time="0.084">
+  <properties/>
+  <testcase name="testDeleteProperty_FailWithActiveBookings()" classname="apap.ti._5.accommodation_2306275651_be.restservice.PropertyRestServiceTest" time="0.004"/>
+  <testcase name="testActiveStatusConversion_Inactive()" classname="apap.ti._5.accommodation_2306275651_be.restservice.PropertyRestServiceTest" time="0.002"/>
+  <testcase name="testGetPropertiesByOwner_Found()" classname="apap.ti._5.accommodation_2306275651_be.restservice.PropertyRestServiceTest" time="0.003"/>
+  <testcase name="testUpdateProperty_Success()" classname="apap.ti._5.accommodation_2306275651_be.restservice.PropertyRestServiceTest" time="0.003"/>
+  <testcase name="testTypePrefixGeneration_Hotel()" classname="apap.ti._5.accommodation_2306275651_be.restservice.PropertyRestServiceTest" time="0.016"/>
+  <testcase name="testTypePrefixGeneration_Villa()" classname="apap.ti._5.accommodation_2306275651_be.restservice.PropertyRestServiceTest" time="0.006"/>
+  <testcase name="testDeleteProperty_NotFound()" classname="apap.ti._5.accommodation_2306275651_be.restservice.PropertyRestServiceTest" time="0.003"/>
+  <testcase name="testDeleteProperty_Success_NoActiveBookings()" classname="apap.ti._5.accommodation_2306275651_be.restservice.PropertyRestServiceTest" time="0.004"/>
+  <testcase name="testTypeNameConversion_Apartment()" classname="apap.ti._5.accommodation_2306275651_be.restservice.PropertyRestServiceTest" time="0.003"/>
+  <testcase name="testUpdateProperty_PartialUpdate()" classname="apap.ti._5.accommodation_2306275651_be.restservice.PropertyRestServiceTest" time="0.003"/>
+  <testcase name="testGetAllProperties_EmptyList()" classname="apap.ti._5.accommodation_2306275651_be.restservice.PropertyRestServiceTest" time="0.003"/>
+  <testcase name="testGetPropertyById_NotFound()" classname="apap.ti._5.accommodation_2306275651_be.restservice.PropertyRestServiceTest" time="0.002"/>
+  <testcase name="testGetPropertyById_WithRoomTypes()" classname="apap.ti._5.accommodation_2306275651_be.restservice.PropertyRestServiceTest" time="0.002"/>
+  <testcase name="testGetAllProperties_Success()" classname="apap.ti._5.accommodation_2306275651_be.restservice.PropertyRestServiceTest" time="0.003"/>
+  <testcase name="testGetPropertiesByOwner_NotFound()" classname="apap.ti._5.accommodation_2306275651_be.restservice.PropertyRestServiceTest" time="0.003"/>
+  <testcase name="testGetPropertyById_Found()" classname="apap.ti._5.accommodation_2306275651_be.restservice.PropertyRestServiceTest" time="0.003"/>
+  <testcase name="testTypeNameConversion_Hotel()" classname="apap.ti._5.accommodation_2306275651_be.restservice.PropertyRestServiceTest" time="0.002"/>
+  <testcase name="testTypeNameConversion_Villa()" classname="apap.ti._5.accommodation_2306275651_be.restservice.PropertyRestServiceTest" time="0.002"/>
+  <testcase name="testActiveStatusConversion_Active()" classname="apap.ti._5.accommodation_2306275651_be.restservice.PropertyRestServiceTest" time="0.002"/>
+  <testcase name="testTypePrefixGeneration_Apartment()" classname="apap.ti._5.accommodation_2306275651_be.restservice.PropertyRestServiceTest" time="0.006"/>
+  <testcase name="testUpdateProperty_NotFound()" classname="apap.ti._5.accommodation_2306275651_be.restservice.PropertyRestServiceTest" time="0.003"/>
+  <system-out><![CDATA[   ]]>&#x1f3e0;<![CDATA[ Creating Room 1/6
+      ✅ Room Created: ROOM-001
+   ]]>&#x1f3e0;<![CDATA[ Creating Room 2/6
+      ✅ Room Created: ROOM-001
+   ]]>&#x1f3e0;<![CDATA[ Creating Room 3/6
+      ✅ Room Created: ROOM-001
+   ]]>&#x1f3e0;<![CDATA[ Creating Room 4/6
+      ✅ Room Created: ROOM-001
+   ]]>&#x1f3e0;<![CDATA[ Creating Room 5/6
+      ✅ Room Created: ROOM-001
+   ]]>&#x1f3e0;<![CDATA[ Creating Room 6/6
+      ✅ Room Created: ROOM-001
+   ]]>&#x1f3e0;<![CDATA[ Creating Room 1/11
+      ✅ Room Created: ROOM-001
+   ]]>&#x1f3e0;<![CDATA[ Creating Room 2/11
+      ✅ Room Created: ROOM-001
+   ]]>&#x1f3e0;<![CDATA[ Creating Room 3/11
+      ✅ Room Created: ROOM-001
+   ]]>&#x1f3e0;<![CDATA[ Creating Room 4/11
+      ✅ Room Created: ROOM-001
+   ]]>&#x1f3e0;<![CDATA[ Creating Room 5/11
+      ✅ Room Created: ROOM-001
+   ]]>&#x1f3e0;<![CDATA[ Creating Room 6/11
+      ✅ Room Created: ROOM-001
+   ]]>&#x1f3e0;<![CDATA[ Creating Room 7/11
+      ✅ Room Created: ROOM-001
+   ]]>&#x1f3e0;<![CDATA[ Creating Room 8/11
+      ✅ Room Created: ROOM-001
+   ]]>&#x1f3e0;<![CDATA[ Creating Room 9/11
+      ✅ Room Created: ROOM-001
+   ]]>&#x1f3e0;<![CDATA[ Creating Room 10/11
+      ✅ Room Created: ROOM-001
+   ]]>&#x1f3e0;<![CDATA[ Creating Room 11/11
+      ✅ Room Created: ROOM-001
+   ]]>&#x1f3e0;<![CDATA[ Creating Room 1/6
+      ✅ Room Created: ROOM-001
+   ]]>&#x1f3e0;<![CDATA[ Creating Room 2/6
+      ✅ Room Created: ROOM-001
+   ]]>&#x1f3e0;<![CDATA[ Creating Room 3/6
+      ✅ Room Created: ROOM-001
+   ]]>&#x1f3e0;<![CDATA[ Creating Room 4/6
+      ✅ Room Created: ROOM-001
+   ]]>&#x1f3e0;<![CDATA[ Creating Room 5/6
+      ✅ Room Created: ROOM-001
+   ]]>&#x1f3e0;<![CDATA[ Creating Room 6/6
+      ✅ Room Created: ROOM-001
+   ]]>&#x1f3e0;<![CDATA[ Creating Room 1/11
+      ✅ Room Created: ROOM-001
+   ]]>&#x1f3e0;<![CDATA[ Creating Room 2/11
+      ✅ Room Created: ROOM-001
+   ]]>&#x1f3e0;<![CDATA[ Creating Room 3/11
+      ✅ Room Created: ROOM-001
+   ]]>&#x1f3e0;<![CDATA[ Creating Room 4/11
+      ✅ Room Created: ROOM-001
+   ]]>&#x1f3e0;<![CDATA[ Creating Room 5/11
+      ✅ Room Created: ROOM-001
+   ]]>&#x1f3e0;<![CDATA[ Creating Room 6/11
+      ✅ Room Created: ROOM-001
+   ]]>&#x1f3e0;<![CDATA[ Creating Room 7/11
+      ✅ Room Created: ROOM-001
+   ]]>&#x1f3e0;<![CDATA[ Creating Room 8/11
+      ✅ Room Created: ROOM-001
+   ]]>&#x1f3e0;<![CDATA[ Creating Room 9/11
+      ✅ Room Created: ROOM-001
+   ]]>&#x1f3e0;<![CDATA[ Creating Room 10/11
+      ✅ Room Created: ROOM-001
+   ]]>&#x1f3e0;<![CDATA[ Creating Room 11/11
+      ✅ Room Created: ROOM-001
+]]>&#x1f5d1;<![CDATA[️ Deleting property (soft delete):
+   Property ID: HOT-4000-001
+   Property Name: Grand Hotel Jakarta
+   Active Bookings: 0
+Property soft deleted successfully
+   ]]>&#x1f3e0;<![CDATA[ Creating Room 1/6
+      ✅ Room Created: ROOM-001
+   ]]>&#x1f3e0;<![CDATA[ Creating Room 2/6
+      ✅ Room Created: ROOM-001
+   ]]>&#x1f3e0;<![CDATA[ Creating Room 3/6
+      ✅ Room Created: ROOM-001
+   ]]>&#x1f3e0;<![CDATA[ Creating Room 4/6
+      ✅ Room Created: ROOM-001
+   ]]>&#x1f3e0;<![CDATA[ Creating Room 5/6
+      ✅ Room Created: ROOM-001
+   ]]>&#x1f3e0;<![CDATA[ Creating Room 6/6
+      ✅ Room Created: ROOM-001
+   ]]>&#x1f3e0;<![CDATA[ Creating Room 1/11
+      ✅ Room Created: ROOM-001
+   ]]>&#x1f3e0;<![CDATA[ Creating Room 2/11
+      ✅ Room Created: ROOM-001
+   ]]>&#x1f3e0;<![CDATA[ Creating Room 3/11
+      ✅ Room Created: ROOM-001
+   ]]>&#x1f3e0;<![CDATA[ Creating Room 4/11
+      ✅ Room Created: ROOM-001
+   ]]>&#x1f3e0;<![CDATA[ Creating Room 5/11
+      ✅ Room Created: ROOM-001
+   ]]>&#x1f3e0;<![CDATA[ Creating Room 6/11
+      ✅ Room Created: ROOM-001
+   ]]>&#x1f3e0;<![CDATA[ Creating Room 7/11
+      ✅ Room Created: ROOM-001
+   ]]>&#x1f3e0;<![CDATA[ Creating Room 8/11
+      ✅ Room Created: ROOM-001
+   ]]>&#x1f3e0;<![CDATA[ Creating Room 9/11
+      ✅ Room Created: ROOM-001
+   ]]>&#x1f3e0;<![CDATA[ Creating Room 10/11
+      ✅ Room Created: ROOM-001
+   ]]>&#x1f3e0;<![CDATA[ Creating Room 11/11
+      ✅ Room Created: ROOM-001
+]]></system-out>
+  <system-err><![CDATA[Cannot delete property:
+   Property ID: HOT-4000-001
+   Active Bookings: 5
+]]></system-err>
+</testsuite>

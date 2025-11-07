@@ -10,4 +10,5 @@ import apap.ti._5.accommodation_2306275651_be.model.RoomType;
 @Repository
 public interface RoomTypeRepository extends JpaRepository<RoomType, String> {
     List<RoomType> findByProperty_PropertyID(String propertyID);
+    
 }
