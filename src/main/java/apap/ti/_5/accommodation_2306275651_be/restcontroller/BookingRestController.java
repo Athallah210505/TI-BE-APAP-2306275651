@@ -421,15 +421,14 @@ public ResponseEntity<BaseResponseDTO<BookingResponseDTO>> updateBooking(
             return new ResponseEntity<>(baseResponseDTO, HttpStatus.BAD_REQUEST);
         }
         
-        // ✅ Validasi: Check-out harus setelah check-in
-        if (request.getCheckOutDate().isBefore(request.getCheckInDate()) ||
-            request.getCheckOutDate().isEqual(request.getCheckInDate())) {
+        if (request.getCheckOutDate().toLocalDate().isBefore(request.getCheckInDate().toLocalDate()) ||
+            request.getCheckOutDate().toLocalDate().isEqual(request.getCheckInDate().toLocalDate())) {
             baseResponseDTO.setStatus(HttpStatus.BAD_REQUEST.value());
             baseResponseDTO.setMessage("❌ Konfirmasi: Tanggal check-out harus minimal 1 hari setelah check-in");
             baseResponseDTO.setTimestamp(new Date());
             return new ResponseEntity<>(baseResponseDTO, HttpStatus.BAD_REQUEST);
         }
-        
+                
         // ✅ Validasi: Check-in minimal hari ini
         if (request.getCheckInDate().isBefore(LocalDateTime.now())) {
             baseResponseDTO.setStatus(HttpStatus.BAD_REQUEST.value());

@@ -41,7 +41,7 @@
 </td>
 <td>
 <div class="infoBox" id="duration">
-<div class="counter">0.166s</div>
+<div class="counter">0.216s</div>
 <p>duration</p>
 </div>
 </td>
@@ -87,12 +87,12 @@
 </tr>
 <tr>
 <td class="success">testActiveRoomName_Inactive()</td>
-<td class="success">0.001s</td>
+<td class="success">0.002s</td>
 <td class="success">passed</td>
 </tr>
 <tr>
 <td class="success">testAutoUpdateRoomMaintenanceStatus_ClearsMaintenance()</td>
-<td class="success">0.002s</td>
+<td class="success">0.003s</td>
 <td class="success">passed</td>
 </tr>
 <tr>
@@ -107,12 +107,12 @@
 </tr>
 <tr>
 <td class="success">testAutoUpdateRoomMaintenanceStatus_NoUpdate_OngoingMaintenance()</td>
-<td class="success">0.106s</td>
+<td class="success">0.152s</td>
 <td class="success">passed</td>
 </tr>
 <tr>
 <td class="success">testAvailabilityStatusName_Available()</td>
-<td class="success">0.001s</td>
+<td class="success">0s</td>
 <td class="success">passed</td>
 </tr>
 <tr>
@@ -132,22 +132,22 @@
 </tr>
 <tr>
 <td class="success">testCreateRoom_Success()</td>
-<td class="success">0.003s</td>
+<td class="success">0.005s</td>
 <td class="success">passed</td>
 </tr>
 <tr>
 <td class="success">testDeleteRoom_NotFound()</td>
-<td class="success">0.002s</td>
+<td class="success">0.001s</td>
 <td class="success">passed</td>
 </tr>
 <tr>
 <td class="success">testDeleteRoom_Success()</td>
-<td class="success">0.002s</td>
+<td class="success">0.001s</td>
 <td class="success">passed</td>
 </tr>
 <tr>
 <td class="success">testGetAllRooms_EmptyList()</td>
-<td class="success">0.001s</td>
+<td class="success">0.002s</td>
 <td class="success">passed</td>
 </tr>
 <tr>
@@ -157,7 +157,7 @@
 </tr>
 <tr>
 <td class="success">testGetAvailableRooms_EmptyList()</td>
-<td class="success">0.002s</td>
+<td class="success">0.001s</td>
 <td class="success">passed</td>
 </tr>
 <tr>
@@ -177,17 +177,17 @@
 </tr>
 <tr>
 <td class="success">testGetRoomById_NotFound()</td>
-<td class="success">0.002s</td>
+<td class="success">0.003s</td>
 <td class="success">passed</td>
 </tr>
 <tr>
 <td class="success">testGetRoomEntityById_Found()</td>
-<td class="success">0.002s</td>
+<td class="success">0.001s</td>
 <td class="success">passed</td>
 </tr>
 <tr>
 <td class="success">testGetRoomEntityById_NotFound()</td>
-<td class="success">0.002s</td>
+<td class="success">0.004s</td>
 <td class="success">passed</td>
 </tr>
 <tr>
@@ -197,7 +197,7 @@
 </tr>
 <tr>
 <td class="success">testGetRoomsByPropertyAndFloor_Found()</td>
-<td class="success">0.002s</td>
+<td class="success">0.001s</td>
 <td class="success">passed</td>
 </tr>
 <tr>
@@ -207,22 +207,22 @@
 </tr>
 <tr>
 <td class="success">testGetRoomsByRoomType_Found()</td>
-<td class="success">0.002s</td>
+<td class="success">0.005s</td>
 <td class="success">passed</td>
 </tr>
 <tr>
 <td class="success">testGetRoomsByRoomType_NotFound()</td>
-<td class="success">0.002s</td>
+<td class="success">0.001s</td>
 <td class="success">passed</td>
 </tr>
 <tr>
 <td class="success">testHasBookingConflict_InvalidDateFormat_ReturnsFalse()</td>
-<td class="success">0.002s</td>
+<td class="success">0.001s</td>
 <td class="success">passed</td>
 </tr>
 <tr>
 <td class="success">testHasBookingConflict_NoConflict()</td>
-<td class="success">0.001s</td>
+<td class="success">0.003s</td>
 <td class="success">passed</td>
 </tr>
 <tr>
@@ -247,7 +247,7 @@
 </tr>
 <tr>
 <td class="success">testUpdateRoom_PartialUpdate()</td>
-<td class="success">0.003s</td>
+<td class="success">0.002s</td>
 <td class="success">passed</td>
 </tr>
 <tr>
@@ -271,7 +271,7 @@
 <h2>Standard output</h2>
 <span class="code">
 <pre>&#x1f527; Auto-updating room maintenance status...
-   Current Time: 2025-11-07T10:49:49.237401
+   Current Time: 2025-11-08T01:20:21.585125
 ✅ Auto-update complete: 0 rooms updated
 &#x1f511; Generating Room ID:
    Property ID: HOT-4000-001
@@ -296,10 +296,10 @@
    Maintenance End: 2025-12-05T23:59:59
    ✅ No booking conflicts found
 &#x1f527; Auto-updating room maintenance status...
-   Current Time: 2025-11-07T10:49:49.246750
+   Current Time: 2025-11-08T01:20:21.605015
 ✅ Room HOT-4000-001-201: Maintenance ended
-   Maintenance End: 2025-11-06T10:49:49.246457
-   Current Time: 2025-11-07T10:49:49.246750
+   Maintenance End: 2025-11-07T01:20:21.604211
+   Current Time: 2025-11-08T01:20:21.605015
    Status: Unavailable → Available
    Maintenance cleared
 ✅ Auto-update complete: 1 rooms updated
@@ -307,7 +307,7 @@
    Full Room ID: HOT-4000-001-201
    Extracted Room Name: 201
 &#x1f527; Auto-updating room maintenance status...
-   Current Time: 2025-11-07T10:49:49.251934
+   Current Time: 2025-11-08T01:20:21.611449
 ✅ Auto-update complete: 0 rooms updated
 &#x1f3e0; Converting room to DTO:
    Full Room ID: HOT-4000-001-201
@@ -340,10 +340,10 @@
    Full Room ID: HOT-4000-001-201
    Extracted Room Name: 201
 &#x1f527; Auto-updating room maintenance status...
-   Current Time: 2025-11-07T10:49:49.285754
+   Current Time: 2025-11-08T01:20:21.647230
 ✅ Room HOT-4000-001-201: Maintenance ended
-   Maintenance End: 2025-11-06T10:49:49.285365
-   Current Time: 2025-11-07T10:49:49.285754
+   Maintenance End: 2025-11-07T01:20:21.646865
+   Current Time: 2025-11-08T01:20:21.647230
    Status: Unavailable → Available
    Maintenance cleared
 ✅ Auto-update complete: 1 rooms updated
@@ -408,7 +408,7 @@
 <input id="line-wrapping-toggle" type="checkbox" autocomplete="off"/>
 </label>
 </div>Generated by 
-<a href="https://www.gradle.org">Gradle 8.14.3</a> at Nov 7, 2025, 10:49:49 AM</p>
+<a href="https://www.gradle.org">Gradle 8.14.3</a> at Nov 8, 2025, 1:20:22 AM</p>
 </div>
 </div>
 </body>

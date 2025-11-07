@@ -421,41 +421,40 @@ public ResponseEntity&lt;BaseResponseDTO&lt;BookingResponseDTO&gt;&gt; updateBoo
 <span class="fc" id="L421">            return new ResponseEntity&lt;&gt;(baseResponseDTO, HttpStatus.BAD_REQUEST);</span>
         }
         
-        // ✅ Validasi: Check-out harus setelah check-in
-<span class="fc bfc" id="L425" title="All 2 branches covered.">        if (request.getCheckOutDate().isBefore(request.getCheckInDate()) ||</span>
-<span class="pc bpc" id="L426" title="1 of 2 branches missed.">            request.getCheckOutDate().isEqual(request.getCheckInDate())) {</span>
-<span class="fc" id="L427">            baseResponseDTO.setStatus(HttpStatus.BAD_REQUEST.value());</span>
-<span class="fc" id="L428">            baseResponseDTO.setMessage(&quot;❌ Konfirmasi: Tanggal check-out harus minimal 1 hari setelah check-in&quot;);</span>
-<span class="fc" id="L429">            baseResponseDTO.setTimestamp(new Date());</span>
-<span class="fc" id="L430">            return new ResponseEntity&lt;&gt;(baseResponseDTO, HttpStatus.BAD_REQUEST);</span>
+<span class="fc bfc" id="L424" title="All 2 branches covered.">        if (request.getCheckOutDate().toLocalDate().isBefore(request.getCheckInDate().toLocalDate()) ||</span>
+<span class="pc bpc" id="L425" title="1 of 2 branches missed.">            request.getCheckOutDate().toLocalDate().isEqual(request.getCheckInDate().toLocalDate())) {</span>
+<span class="fc" id="L426">            baseResponseDTO.setStatus(HttpStatus.BAD_REQUEST.value());</span>
+<span class="fc" id="L427">            baseResponseDTO.setMessage(&quot;❌ Konfirmasi: Tanggal check-out harus minimal 1 hari setelah check-in&quot;);</span>
+<span class="fc" id="L428">            baseResponseDTO.setTimestamp(new Date());</span>
+<span class="fc" id="L429">            return new ResponseEntity&lt;&gt;(baseResponseDTO, HttpStatus.BAD_REQUEST);</span>
         }
-        
+                
         // ✅ Validasi: Check-in minimal hari ini
-<span class="pc bpc" id="L434" title="1 of 2 branches missed.">        if (request.getCheckInDate().isBefore(LocalDateTime.now())) {</span>
-<span class="nc" id="L435">            baseResponseDTO.setStatus(HttpStatus.BAD_REQUEST.value());</span>
-<span class="nc" id="L436">            baseResponseDTO.setMessage(&quot;❌ Konfirmasi: Tanggal check-in tidak boleh di masa lalu&quot;);</span>
-<span class="nc" id="L437">            baseResponseDTO.setTimestamp(new Date());</span>
-<span class="nc" id="L438">            return new ResponseEntity&lt;&gt;(baseResponseDTO, HttpStatus.BAD_REQUEST);</span>
+<span class="pc bpc" id="L433" title="1 of 2 branches missed.">        if (request.getCheckInDate().isBefore(LocalDateTime.now())) {</span>
+<span class="nc" id="L434">            baseResponseDTO.setStatus(HttpStatus.BAD_REQUEST.value());</span>
+<span class="nc" id="L435">            baseResponseDTO.setMessage(&quot;❌ Konfirmasi: Tanggal check-in tidak boleh di masa lalu&quot;);</span>
+<span class="nc" id="L436">            baseResponseDTO.setTimestamp(new Date());</span>
+<span class="nc" id="L437">            return new ResponseEntity&lt;&gt;(baseResponseDTO, HttpStatus.BAD_REQUEST);</span>
         }
         
         // ✅ Validasi: Jika ada roomID baru, cek availability &amp; capacity
-<span class="pc bpc" id="L442" title="2 of 4 branches missed.">        if (request.getRoomID() != null &amp;&amp; !request.getRoomID().isEmpty()) {</span>
-<span class="fc" id="L443">            Room room = roomRestService.getRoomEntityById(request.getRoomID());</span>
+<span class="pc bpc" id="L441" title="2 of 4 branches missed.">        if (request.getRoomID() != null &amp;&amp; !request.getRoomID().isEmpty()) {</span>
+<span class="fc" id="L442">            Room room = roomRestService.getRoomEntityById(request.getRoomID());</span>
             
-<span class="pc bpc" id="L445" title="1 of 2 branches missed.">            if (room == null) {</span>
-<span class="fc" id="L446">                baseResponseDTO.setStatus(HttpStatus.NOT_FOUND.value());</span>
-<span class="fc" id="L447">                baseResponseDTO.setMessage(&quot;❌ Konfirmasi: Kamar tidak ditemukan&quot;);</span>
-<span class="fc" id="L448">                baseResponseDTO.setTimestamp(new Date());</span>
-<span class="fc" id="L449">                return new ResponseEntity&lt;&gt;(baseResponseDTO, HttpStatus.NOT_FOUND);</span>
+<span class="pc bpc" id="L444" title="1 of 2 branches missed.">            if (room == null) {</span>
+<span class="fc" id="L445">                baseResponseDTO.setStatus(HttpStatus.NOT_FOUND.value());</span>
+<span class="fc" id="L446">                baseResponseDTO.setMessage(&quot;❌ Konfirmasi: Kamar tidak ditemukan&quot;);</span>
+<span class="fc" id="L447">                baseResponseDTO.setTimestamp(new Date());</span>
+<span class="fc" id="L448">                return new ResponseEntity&lt;&gt;(baseResponseDTO, HttpStatus.NOT_FOUND);</span>
             }
             
             // ✅ Check capacity
-<span class="nc bnc" id="L453" title="All 2 branches missed.">            Integer roomCapacity = room.getRoomType() != null ? room.getRoomType().getCapacity() : null;</span>
-<span class="nc bnc" id="L454" title="All 4 branches missed.">            if (roomCapacity != null &amp;&amp; request.getCapacity() &gt; roomCapacity) {</span>
-<span class="nc" id="L455">                baseResponseDTO.setStatus(HttpStatus.BAD_REQUEST.value());</span>
-<span class="nc" id="L456">                baseResponseDTO.setMessage(&quot;❌ Konfirmasi: Kapasitas tamu (&quot; + request.getCapacity() + </span>
+<span class="nc bnc" id="L452" title="All 2 branches missed.">            Integer roomCapacity = room.getRoomType() != null ? room.getRoomType().getCapacity() : null;</span>
+<span class="nc bnc" id="L453" title="All 4 branches missed.">            if (roomCapacity != null &amp;&amp; request.getCapacity() &gt; roomCapacity) {</span>
+<span class="nc" id="L454">                baseResponseDTO.setStatus(HttpStatus.BAD_REQUEST.value());</span>
+<span class="nc" id="L455">                baseResponseDTO.setMessage(&quot;❌ Konfirmasi: Kapasitas tamu (&quot; + request.getCapacity() + </span>
                                           &quot;) melebihi kapasitas kamar (&quot; + roomCapacity + &quot;)&quot;);
-<span class="nc" id="L458">                return new ResponseEntity&lt;&gt;(baseResponseDTO, HttpStatus.BAD_REQUEST);</span>
+<span class="nc" id="L457">                return new ResponseEntity&lt;&gt;(baseResponseDTO, HttpStatus.BAD_REQUEST);</span>
             }
             
             // // ✅ Check booking conflict (exclude booking yang sedang diupdate)
@@ -473,31 +472,31 @@ public ResponseEntity&lt;BaseResponseDTO&lt;BookingResponseDTO&gt;&gt; updateBoo
             // }
             
             // ✅ Check maintenance schedule
-<span class="nc bnc" id="L476" title="All 4 branches missed.">            if (room.getMaintenanceStart() != null &amp;&amp; room.getMaintenanceEnd() != null) {</span>
-<span class="nc bnc" id="L477" title="All 2 branches missed.">                if (!(request.getCheckOutDate().isBefore(room.getMaintenanceStart()) ||</span>
-<span class="nc bnc" id="L478" title="All 2 branches missed.">                      request.getCheckInDate().isAfter(room.getMaintenanceEnd()))) {</span>
-<span class="nc" id="L479">                    baseResponseDTO.setStatus(HttpStatus.BAD_REQUEST.value());</span>
-<span class="nc" id="L480">                    baseResponseDTO.setMessage(&quot;❌ Konfirmasi: Kamar sedang dalam jadwal maintenance pada tanggal tersebut&quot;);</span>
-<span class="nc" id="L481">                    baseResponseDTO.setTimestamp(new Date());</span>
-<span class="nc" id="L482">                    return new ResponseEntity&lt;&gt;(baseResponseDTO, HttpStatus.BAD_REQUEST);</span>
+<span class="nc bnc" id="L475" title="All 4 branches missed.">            if (room.getMaintenanceStart() != null &amp;&amp; room.getMaintenanceEnd() != null) {</span>
+<span class="nc bnc" id="L476" title="All 2 branches missed.">                if (!(request.getCheckOutDate().isBefore(room.getMaintenanceStart()) ||</span>
+<span class="nc bnc" id="L477" title="All 2 branches missed.">                      request.getCheckInDate().isAfter(room.getMaintenanceEnd()))) {</span>
+<span class="nc" id="L478">                    baseResponseDTO.setStatus(HttpStatus.BAD_REQUEST.value());</span>
+<span class="nc" id="L479">                    baseResponseDTO.setMessage(&quot;❌ Konfirmasi: Kamar sedang dalam jadwal maintenance pada tanggal tersebut&quot;);</span>
+<span class="nc" id="L480">                    baseResponseDTO.setTimestamp(new Date());</span>
+<span class="nc" id="L481">                    return new ResponseEntity&lt;&gt;(baseResponseDTO, HttpStatus.BAD_REQUEST);</span>
                 }
             }
         }
         
         // ✅ Update booking
-<span class="nc" id="L488">        BookingResponseDTO response = bookingRestService.updateBooking(id, request);</span>
+<span class="nc" id="L487">        BookingResponseDTO response = bookingRestService.updateBooking(id, request);</span>
         
-<span class="nc" id="L490">        baseResponseDTO.setStatus(HttpStatus.OK.value());</span>
-<span class="nc" id="L491">        baseResponseDTO.setData(response);</span>
-<span class="nc" id="L492">        baseResponseDTO.setMessage(&quot;✅ Konfirmasi: Data Booking Berhasil Diupdate&quot;);</span>
-<span class="nc" id="L493">        baseResponseDTO.setTimestamp(new Date());</span>
-<span class="nc" id="L494">        return new ResponseEntity&lt;&gt;(baseResponseDTO, HttpStatus.OK);</span>
+<span class="nc" id="L489">        baseResponseDTO.setStatus(HttpStatus.OK.value());</span>
+<span class="nc" id="L490">        baseResponseDTO.setData(response);</span>
+<span class="nc" id="L491">        baseResponseDTO.setMessage(&quot;✅ Konfirmasi: Data Booking Berhasil Diupdate&quot;);</span>
+<span class="nc" id="L492">        baseResponseDTO.setTimestamp(new Date());</span>
+<span class="nc" id="L493">        return new ResponseEntity&lt;&gt;(baseResponseDTO, HttpStatus.OK);</span>
         
-<span class="nc" id="L496">    } catch (Exception ex) {</span>
-<span class="nc" id="L497">        baseResponseDTO.setStatus(HttpStatus.INTERNAL_SERVER_ERROR.value());</span>
-<span class="nc" id="L498">        baseResponseDTO.setMessage(&quot;❌ Konfirmasi: Gagal update booking. Error: &quot; + ex.getMessage());</span>
-<span class="nc" id="L499">        baseResponseDTO.setTimestamp(new Date());</span>
-<span class="nc" id="L500">        return new ResponseEntity&lt;&gt;(baseResponseDTO, HttpStatus.INTERNAL_SERVER_ERROR);</span>
+<span class="nc" id="L495">    } catch (Exception ex) {</span>
+<span class="nc" id="L496">        baseResponseDTO.setStatus(HttpStatus.INTERNAL_SERVER_ERROR.value());</span>
+<span class="nc" id="L497">        baseResponseDTO.setMessage(&quot;❌ Konfirmasi: Gagal update booking. Error: &quot; + ex.getMessage());</span>
+<span class="nc" id="L498">        baseResponseDTO.setTimestamp(new Date());</span>
+<span class="nc" id="L499">        return new ResponseEntity&lt;&gt;(baseResponseDTO, HttpStatus.INTERNAL_SERVER_ERROR);</span>
     }
 }
     
@@ -507,62 +506,62 @@ public ResponseEntity&lt;BaseResponseDTO&lt;BookingResponseDTO&gt;&gt; updateBoo
             @Valid @RequestBody UpdateBookingStatusRequestDTO request,
             BindingResult bindingResult) {
         
-<span class="fc" id="L510">        var baseResponseDTO = new BaseResponseDTO&lt;BookingResponseDTO&gt;();</span>
+<span class="fc" id="L509">        var baseResponseDTO = new BaseResponseDTO&lt;BookingResponseDTO&gt;();</span>
         
-<span class="pc bpc" id="L512" title="1 of 2 branches missed.">        if (bindingResult.hasFieldErrors()) {</span>
-<span class="nc" id="L513">            StringBuilder errorMessages = new StringBuilder();</span>
-<span class="nc" id="L514">            List&lt;FieldError&gt; errors = bindingResult.getFieldErrors();</span>
-<span class="nc bnc" id="L515" title="All 2 branches missed.">            for (FieldError error : errors) {</span>
-<span class="nc" id="L516">                errorMessages.append(error.getDefaultMessage()).append(&quot;; &quot;);</span>
-<span class="nc" id="L517">            }</span>
+<span class="pc bpc" id="L511" title="1 of 2 branches missed.">        if (bindingResult.hasFieldErrors()) {</span>
+<span class="nc" id="L512">            StringBuilder errorMessages = new StringBuilder();</span>
+<span class="nc" id="L513">            List&lt;FieldError&gt; errors = bindingResult.getFieldErrors();</span>
+<span class="nc bnc" id="L514" title="All 2 branches missed.">            for (FieldError error : errors) {</span>
+<span class="nc" id="L515">                errorMessages.append(error.getDefaultMessage()).append(&quot;; &quot;);</span>
+<span class="nc" id="L516">            }</span>
             
-<span class="nc" id="L519">            baseResponseDTO.setStatus(HttpStatus.BAD_REQUEST.value());</span>
-<span class="nc" id="L520">            baseResponseDTO.setMessage(errorMessages.toString());</span>
-<span class="nc" id="L521">            baseResponseDTO.setTimestamp(new Date());</span>
-<span class="nc" id="L522">            return new ResponseEntity&lt;&gt;(baseResponseDTO, HttpStatus.BAD_REQUEST);</span>
+<span class="nc" id="L518">            baseResponseDTO.setStatus(HttpStatus.BAD_REQUEST.value());</span>
+<span class="nc" id="L519">            baseResponseDTO.setMessage(errorMessages.toString());</span>
+<span class="nc" id="L520">            baseResponseDTO.setTimestamp(new Date());</span>
+<span class="nc" id="L521">            return new ResponseEntity&lt;&gt;(baseResponseDTO, HttpStatus.BAD_REQUEST);</span>
         }
         
         try {
-<span class="fc" id="L526">            BookingResponseDTO response = bookingRestService.updateBookingStatus(id, request);</span>
+<span class="fc" id="L525">            BookingResponseDTO response = bookingRestService.updateBookingStatus(id, request);</span>
             
-<span class="fc bfc" id="L528" title="All 2 branches covered.">            if (response == null) {</span>
-<span class="fc" id="L529">                baseResponseDTO.setStatus(HttpStatus.NOT_FOUND.value());</span>
-<span class="fc" id="L530">                baseResponseDTO.setMessage(&quot;Booking Tidak Ditemukan&quot;);</span>
+<span class="fc bfc" id="L527" title="All 2 branches covered.">            if (response == null) {</span>
+<span class="fc" id="L528">                baseResponseDTO.setStatus(HttpStatus.NOT_FOUND.value());</span>
+<span class="fc" id="L529">                baseResponseDTO.setMessage(&quot;Booking Tidak Ditemukan&quot;);</span>
     
-<span class="fc" id="L532">                return new ResponseEntity&lt;&gt;(baseResponseDTO, HttpStatus.NOT_FOUND);</span>
+<span class="fc" id="L531">                return new ResponseEntity&lt;&gt;(baseResponseDTO, HttpStatus.NOT_FOUND);</span>
             }
             
-<span class="fc" id="L535">            baseResponseDTO.setStatus(HttpStatus.OK.value());</span>
-<span class="fc" id="L536">            baseResponseDTO.setData(response);</span>
-<span class="fc" id="L537">            baseResponseDTO.setMessage(&quot;✅ Konfirmasi: Status Booking Berhasil Diupdate&quot;);</span>
-<span class="fc" id="L538">            baseResponseDTO.setTimestamp(new Date());</span>
-<span class="fc" id="L539">            return new ResponseEntity&lt;&gt;(baseResponseDTO, HttpStatus.OK);</span>
+<span class="fc" id="L534">            baseResponseDTO.setStatus(HttpStatus.OK.value());</span>
+<span class="fc" id="L535">            baseResponseDTO.setData(response);</span>
+<span class="fc" id="L536">            baseResponseDTO.setMessage(&quot;✅ Konfirmasi: Status Booking Berhasil Diupdate&quot;);</span>
+<span class="fc" id="L537">            baseResponseDTO.setTimestamp(new Date());</span>
+<span class="fc" id="L538">            return new ResponseEntity&lt;&gt;(baseResponseDTO, HttpStatus.OK);</span>
             
-<span class="fc" id="L541">        } catch (Exception ex) {</span>
-<span class="fc" id="L542">            baseResponseDTO.setStatus(HttpStatus.INTERNAL_SERVER_ERROR.value());</span>
-<span class="fc" id="L543">            baseResponseDTO.setMessage(&quot;❌ Konfirmasi: Gagal update status. Error: &quot; + ex.getMessage());</span>
-<span class="fc" id="L544">            baseResponseDTO.setTimestamp(new Date());</span>
-<span class="fc" id="L545">            return new ResponseEntity&lt;&gt;(baseResponseDTO, HttpStatus.INTERNAL_SERVER_ERROR);</span>
+<span class="fc" id="L540">        } catch (Exception ex) {</span>
+<span class="fc" id="L541">            baseResponseDTO.setStatus(HttpStatus.INTERNAL_SERVER_ERROR.value());</span>
+<span class="fc" id="L542">            baseResponseDTO.setMessage(&quot;❌ Konfirmasi: Gagal update status. Error: &quot; + ex.getMessage());</span>
+<span class="fc" id="L543">            baseResponseDTO.setTimestamp(new Date());</span>
+<span class="fc" id="L544">            return new ResponseEntity&lt;&gt;(baseResponseDTO, HttpStatus.INTERNAL_SERVER_ERROR);</span>
         }
     }
     
     @DeleteMapping(DELETE_BOOKING)
     public ResponseEntity&lt;BaseResponseDTO&lt;Void&gt;&gt; deleteBooking(@PathVariable String id) {
-<span class="fc" id="L551">        var baseResponseDTO = new BaseResponseDTO&lt;Void&gt;();</span>
+<span class="fc" id="L550">        var baseResponseDTO = new BaseResponseDTO&lt;Void&gt;();</span>
         
         try {
-<span class="fc" id="L554">            bookingRestService.deleteBooking(id);</span>
+<span class="fc" id="L553">            bookingRestService.deleteBooking(id);</span>
             
-<span class="fc" id="L556">            baseResponseDTO.setStatus(HttpStatus.OK.value());</span>
-<span class="fc" id="L557">            baseResponseDTO.setMessage(&quot;✅ Konfirmasi: Booking Berhasil Dihapus&quot;);</span>
-<span class="fc" id="L558">            baseResponseDTO.setTimestamp(new Date());</span>
-<span class="fc" id="L559">            return new ResponseEntity&lt;&gt;(baseResponseDTO, HttpStatus.OK);</span>
+<span class="fc" id="L555">            baseResponseDTO.setStatus(HttpStatus.OK.value());</span>
+<span class="fc" id="L556">            baseResponseDTO.setMessage(&quot;✅ Konfirmasi: Booking Berhasil Dihapus&quot;);</span>
+<span class="fc" id="L557">            baseResponseDTO.setTimestamp(new Date());</span>
+<span class="fc" id="L558">            return new ResponseEntity&lt;&gt;(baseResponseDTO, HttpStatus.OK);</span>
             
-<span class="fc" id="L561">        } catch (Exception ex) {</span>
-<span class="fc" id="L562">            baseResponseDTO.setStatus(HttpStatus.INTERNAL_SERVER_ERROR.value());</span>
-<span class="fc" id="L563">            baseResponseDTO.setMessage(&quot;❌ Konfirmasi: Gagal menghapus booking. Error: &quot; + ex.getMessage());</span>
-<span class="fc" id="L564">            baseResponseDTO.setTimestamp(new Date());</span>
-<span class="fc" id="L565">            return new ResponseEntity&lt;&gt;(baseResponseDTO, HttpStatus.INTERNAL_SERVER_ERROR);</span>
+<span class="fc" id="L560">        } catch (Exception ex) {</span>
+<span class="fc" id="L561">            baseResponseDTO.setStatus(HttpStatus.INTERNAL_SERVER_ERROR.value());</span>
+<span class="fc" id="L562">            baseResponseDTO.setMessage(&quot;❌ Konfirmasi: Gagal menghapus booking. Error: &quot; + ex.getMessage());</span>
+<span class="fc" id="L563">            baseResponseDTO.setTimestamp(new Date());</span>
+<span class="fc" id="L564">            return new ResponseEntity&lt;&gt;(baseResponseDTO, HttpStatus.INTERNAL_SERVER_ERROR);</span>
         }
     }
     @PostMapping(PAY_BOOKING)
@@ -570,38 +569,38 @@ public ResponseEntity&lt;BaseResponseDTO&lt;BookingResponseDTO&gt;&gt; updateBoo
             @Valid @RequestBody UpdateBookingStatusRequestDTO request,
             BindingResult bindingResult) {
         
-<span class="fc" id="L573">        var baseResponseDTO = new BaseResponseDTO&lt;BookingResponseDTO&gt;();</span>
+<span class="fc" id="L572">        var baseResponseDTO = new BaseResponseDTO&lt;BookingResponseDTO&gt;();</span>
         
-<span class="pc bpc" id="L575" title="1 of 2 branches missed.">        if (bindingResult.hasFieldErrors()) {</span>
-<span class="nc" id="L576">            StringBuilder errorMessages = new StringBuilder();</span>
-<span class="nc" id="L577">            List&lt;FieldError&gt; errors = bindingResult.getFieldErrors();</span>
-<span class="nc bnc" id="L578" title="All 2 branches missed.">            for (FieldError error : errors) {</span>
-<span class="nc" id="L579">                errorMessages.append(error.getDefaultMessage()).append(&quot;; &quot;);</span>
-<span class="nc" id="L580">            }</span>
+<span class="pc bpc" id="L574" title="1 of 2 branches missed.">        if (bindingResult.hasFieldErrors()) {</span>
+<span class="nc" id="L575">            StringBuilder errorMessages = new StringBuilder();</span>
+<span class="nc" id="L576">            List&lt;FieldError&gt; errors = bindingResult.getFieldErrors();</span>
+<span class="nc bnc" id="L577" title="All 2 branches missed.">            for (FieldError error : errors) {</span>
+<span class="nc" id="L578">                errorMessages.append(error.getDefaultMessage()).append(&quot;; &quot;);</span>
+<span class="nc" id="L579">            }</span>
             
-<span class="nc" id="L582">            baseResponseDTO.setStatus(HttpStatus.BAD_REQUEST.value());</span>
-<span class="nc" id="L583">            baseResponseDTO.setMessage(errorMessages.toString());</span>
-<span class="nc" id="L584">            baseResponseDTO.setTimestamp(new Date());</span>
-<span class="nc" id="L585">            return new ResponseEntity&lt;&gt;(baseResponseDTO, HttpStatus.BAD_REQUEST);</span>
+<span class="nc" id="L581">            baseResponseDTO.setStatus(HttpStatus.BAD_REQUEST.value());</span>
+<span class="nc" id="L582">            baseResponseDTO.setMessage(errorMessages.toString());</span>
+<span class="nc" id="L583">            baseResponseDTO.setTimestamp(new Date());</span>
+<span class="nc" id="L584">            return new ResponseEntity&lt;&gt;(baseResponseDTO, HttpStatus.BAD_REQUEST);</span>
         }
         
         try {
-<span class="fc" id="L589">            BookingResponseDTO response = bookingRestService.confirmPayment(</span>
-<span class="fc" id="L590">                request.getBookingID(), </span>
+<span class="fc" id="L588">            BookingResponseDTO response = bookingRestService.confirmPayment(</span>
+<span class="fc" id="L589">                request.getBookingID(), </span>
                 request
             );
             
-<span class="fc" id="L594">            baseResponseDTO.setStatus(HttpStatus.OK.value());</span>
-<span class="fc" id="L595">            baseResponseDTO.setData(response);</span>
-<span class="fc" id="L596">            baseResponseDTO.setMessage(&quot;✅ Konfirmasi: Pembayaran berhasil dikonfirmasi&quot;);</span>
-<span class="fc" id="L597">            baseResponseDTO.setTimestamp(new Date());</span>
-<span class="fc" id="L598">            return new ResponseEntity&lt;&gt;(baseResponseDTO, HttpStatus.OK);</span>
+<span class="fc" id="L593">            baseResponseDTO.setStatus(HttpStatus.OK.value());</span>
+<span class="fc" id="L594">            baseResponseDTO.setData(response);</span>
+<span class="fc" id="L595">            baseResponseDTO.setMessage(&quot;✅ Konfirmasi: Pembayaran berhasil dikonfirmasi&quot;);</span>
+<span class="fc" id="L596">            baseResponseDTO.setTimestamp(new Date());</span>
+<span class="fc" id="L597">            return new ResponseEntity&lt;&gt;(baseResponseDTO, HttpStatus.OK);</span>
             
-<span class="fc" id="L600">        } catch (Exception ex) {</span>
-<span class="fc" id="L601">            baseResponseDTO.setStatus(HttpStatus.INTERNAL_SERVER_ERROR.value());</span>
-<span class="fc" id="L602">            baseResponseDTO.setMessage(&quot;❌ Konfirmasi: Gagal konfirmasi pembayaran. Error: &quot; + ex.getMessage());</span>
-<span class="fc" id="L603">            baseResponseDTO.setTimestamp(new Date());</span>
-<span class="fc" id="L604">            return new ResponseEntity&lt;&gt;(baseResponseDTO, HttpStatus.INTERNAL_SERVER_ERROR);</span>
+<span class="fc" id="L599">        } catch (Exception ex) {</span>
+<span class="fc" id="L600">            baseResponseDTO.setStatus(HttpStatus.INTERNAL_SERVER_ERROR.value());</span>
+<span class="fc" id="L601">            baseResponseDTO.setMessage(&quot;❌ Konfirmasi: Gagal konfirmasi pembayaran. Error: &quot; + ex.getMessage());</span>
+<span class="fc" id="L602">            baseResponseDTO.setTimestamp(new Date());</span>
+<span class="fc" id="L603">            return new ResponseEntity&lt;&gt;(baseResponseDTO, HttpStatus.INTERNAL_SERVER_ERROR);</span>
         }
     }
     @PostMapping(CANCEL_BOOKING)
@@ -609,38 +608,38 @@ public ResponseEntity&lt;BaseResponseDTO&lt;BookingResponseDTO&gt;&gt; updateBoo
             @Valid @RequestBody UpdateBookingStatusRequestDTO request,
             BindingResult bindingResult) {
         
-<span class="fc" id="L612">        var baseResponseDTO = new BaseResponseDTO&lt;BookingResponseDTO&gt;();</span>
+<span class="fc" id="L611">        var baseResponseDTO = new BaseResponseDTO&lt;BookingResponseDTO&gt;();</span>
         
-<span class="pc bpc" id="L614" title="1 of 2 branches missed.">        if (bindingResult.hasFieldErrors()) {</span>
-<span class="nc" id="L615">            StringBuilder errorMessages = new StringBuilder();</span>
-<span class="nc" id="L616">            List&lt;FieldError&gt; errors = bindingResult.getFieldErrors();</span>
-<span class="nc bnc" id="L617" title="All 2 branches missed.">            for (FieldError error : errors) {</span>
-<span class="nc" id="L618">                errorMessages.append(error.getDefaultMessage()).append(&quot;; &quot;);</span>
-<span class="nc" id="L619">            }</span>
+<span class="pc bpc" id="L613" title="1 of 2 branches missed.">        if (bindingResult.hasFieldErrors()) {</span>
+<span class="nc" id="L614">            StringBuilder errorMessages = new StringBuilder();</span>
+<span class="nc" id="L615">            List&lt;FieldError&gt; errors = bindingResult.getFieldErrors();</span>
+<span class="nc bnc" id="L616" title="All 2 branches missed.">            for (FieldError error : errors) {</span>
+<span class="nc" id="L617">                errorMessages.append(error.getDefaultMessage()).append(&quot;; &quot;);</span>
+<span class="nc" id="L618">            }</span>
             
-<span class="nc" id="L621">            baseResponseDTO.setStatus(HttpStatus.BAD_REQUEST.value());</span>
-<span class="nc" id="L622">            baseResponseDTO.setMessage(errorMessages.toString());</span>
-<span class="nc" id="L623">            baseResponseDTO.setTimestamp(new Date());</span>
-<span class="nc" id="L624">            return new ResponseEntity&lt;&gt;(baseResponseDTO, HttpStatus.BAD_REQUEST);</span>
+<span class="nc" id="L620">            baseResponseDTO.setStatus(HttpStatus.BAD_REQUEST.value());</span>
+<span class="nc" id="L621">            baseResponseDTO.setMessage(errorMessages.toString());</span>
+<span class="nc" id="L622">            baseResponseDTO.setTimestamp(new Date());</span>
+<span class="nc" id="L623">            return new ResponseEntity&lt;&gt;(baseResponseDTO, HttpStatus.BAD_REQUEST);</span>
         }
         
         try {
-<span class="fc" id="L628">            BookingResponseDTO response = bookingRestService.cancelBooking(</span>
-<span class="fc" id="L629">                request.getBookingID(), </span>
+<span class="fc" id="L627">            BookingResponseDTO response = bookingRestService.cancelBooking(</span>
+<span class="fc" id="L628">                request.getBookingID(), </span>
                 request
             );
             
-<span class="fc" id="L633">            baseResponseDTO.setStatus(HttpStatus.OK.value());</span>
-<span class="fc" id="L634">            baseResponseDTO.setData(response);</span>
-<span class="fc" id="L635">            baseResponseDTO.setMessage(&quot;✅ Konfirmasi: Booking berhasil dibatalkan&quot;);</span>
-<span class="fc" id="L636">            baseResponseDTO.setTimestamp(new Date());</span>
-<span class="fc" id="L637">            return new ResponseEntity&lt;&gt;(baseResponseDTO, HttpStatus.OK);</span>
+<span class="fc" id="L632">            baseResponseDTO.setStatus(HttpStatus.OK.value());</span>
+<span class="fc" id="L633">            baseResponseDTO.setData(response);</span>
+<span class="fc" id="L634">            baseResponseDTO.setMessage(&quot;✅ Konfirmasi: Booking berhasil dibatalkan&quot;);</span>
+<span class="fc" id="L635">            baseResponseDTO.setTimestamp(new Date());</span>
+<span class="fc" id="L636">            return new ResponseEntity&lt;&gt;(baseResponseDTO, HttpStatus.OK);</span>
             
-<span class="fc" id="L639">        } catch (Exception ex) {</span>
-<span class="fc" id="L640">            baseResponseDTO.setStatus(HttpStatus.INTERNAL_SERVER_ERROR.value());</span>
-<span class="fc" id="L641">            baseResponseDTO.setMessage(&quot;❌ Konfirmasi: Gagal membatalkan booking. Error: &quot; + ex.getMessage());</span>
-<span class="fc" id="L642">            baseResponseDTO.setTimestamp(new Date());</span>
-<span class="fc" id="L643">            return new ResponseEntity&lt;&gt;(baseResponseDTO, HttpStatus.INTERNAL_SERVER_ERROR);</span>
+<span class="fc" id="L638">        } catch (Exception ex) {</span>
+<span class="fc" id="L639">            baseResponseDTO.setStatus(HttpStatus.INTERNAL_SERVER_ERROR.value());</span>
+<span class="fc" id="L640">            baseResponseDTO.setMessage(&quot;❌ Konfirmasi: Gagal membatalkan booking. Error: &quot; + ex.getMessage());</span>
+<span class="fc" id="L641">            baseResponseDTO.setTimestamp(new Date());</span>
+<span class="fc" id="L642">            return new ResponseEntity&lt;&gt;(baseResponseDTO, HttpStatus.INTERNAL_SERVER_ERROR);</span>
         }
     }
     
@@ -648,45 +647,45 @@ public ResponseEntity&lt;BaseResponseDTO&lt;BookingResponseDTO&gt;&gt; updateBoo
 public ResponseEntity&lt;BaseResponseDTO&lt;BookingResponseDTO&gt;&gt; processRefund(
         @RequestBody UpdateBookingStatusRequestDTO request) {
     
-<span class="fc" id="L651">    var baseResponseDTO = new BaseResponseDTO&lt;BookingResponseDTO&gt;();</span>
+<span class="fc" id="L650">    var baseResponseDTO = new BaseResponseDTO&lt;BookingResponseDTO&gt;();</span>
     
     try {
-<span class="pc bpc" id="L654" title="1 of 4 branches missed.">        if (request.getBookingID() == null || request.getBookingID().isEmpty()) {</span>
-<span class="fc" id="L655">            baseResponseDTO.setStatus(HttpStatus.BAD_REQUEST.value());</span>
-<span class="fc" id="L656">            baseResponseDTO.setMessage(&quot;❌ Konfirmasi: Booking ID wajib diisi&quot;);</span>
-<span class="fc" id="L657">            baseResponseDTO.setTimestamp(new Date());</span>
-<span class="fc" id="L658">            return new ResponseEntity&lt;&gt;(baseResponseDTO, HttpStatus.BAD_REQUEST);</span>
+<span class="pc bpc" id="L653" title="1 of 4 branches missed.">        if (request.getBookingID() == null || request.getBookingID().isEmpty()) {</span>
+<span class="fc" id="L654">            baseResponseDTO.setStatus(HttpStatus.BAD_REQUEST.value());</span>
+<span class="fc" id="L655">            baseResponseDTO.setMessage(&quot;❌ Konfirmasi: Booking ID wajib diisi&quot;);</span>
+<span class="fc" id="L656">            baseResponseDTO.setTimestamp(new Date());</span>
+<span class="fc" id="L657">            return new ResponseEntity&lt;&gt;(baseResponseDTO, HttpStatus.BAD_REQUEST);</span>
         }
         
-<span class="fc" id="L661">        BookingResponseDTO booking = bookingRestService.getBookingById(request.getBookingID());</span>
+<span class="fc" id="L660">        BookingResponseDTO booking = bookingRestService.getBookingById(request.getBookingID());</span>
         
-<span class="fc bfc" id="L663" title="All 2 branches covered.">        if (booking == null) {</span>
-<span class="fc" id="L664">            baseResponseDTO.setStatus(HttpStatus.NOT_FOUND.value());</span>
-<span class="fc" id="L665">            baseResponseDTO.setMessage(&quot;❌ Konfirmasi: Booking tidak ditemukan&quot;);</span>
-<span class="fc" id="L666">            baseResponseDTO.setTimestamp(new Date());</span>
-<span class="fc" id="L667">            return new ResponseEntity&lt;&gt;(baseResponseDTO, HttpStatus.NOT_FOUND);</span>
+<span class="fc bfc" id="L662" title="All 2 branches covered.">        if (booking == null) {</span>
+<span class="fc" id="L663">            baseResponseDTO.setStatus(HttpStatus.NOT_FOUND.value());</span>
+<span class="fc" id="L664">            baseResponseDTO.setMessage(&quot;❌ Konfirmasi: Booking tidak ditemukan&quot;);</span>
+<span class="fc" id="L665">            baseResponseDTO.setTimestamp(new Date());</span>
+<span class="fc" id="L666">            return new ResponseEntity&lt;&gt;(baseResponseDTO, HttpStatus.NOT_FOUND);</span>
         }
         
-<span class="fc bfc" id="L670" title="All 2 branches covered.">        if (booking.getStatus() != 3) {</span>
-<span class="fc" id="L671">            baseResponseDTO.setStatus(HttpStatus.BAD_REQUEST.value());</span>
-<span class="fc" id="L672">            baseResponseDTO.setMessage(&quot;❌ Konfirmasi: Hanya booking dengan status 'Request Refund' yang dapat diproses refund&quot;);</span>
-<span class="fc" id="L673">            baseResponseDTO.setTimestamp(new Date());</span>
-<span class="fc" id="L674">            return new ResponseEntity&lt;&gt;(baseResponseDTO, HttpStatus.BAD_REQUEST);</span>
+<span class="fc bfc" id="L669" title="All 2 branches covered.">        if (booking.getStatus() != 3) {</span>
+<span class="fc" id="L670">            baseResponseDTO.setStatus(HttpStatus.BAD_REQUEST.value());</span>
+<span class="fc" id="L671">            baseResponseDTO.setMessage(&quot;❌ Konfirmasi: Hanya booking dengan status 'Request Refund' yang dapat diproses refund&quot;);</span>
+<span class="fc" id="L672">            baseResponseDTO.setTimestamp(new Date());</span>
+<span class="fc" id="L673">            return new ResponseEntity&lt;&gt;(baseResponseDTO, HttpStatus.BAD_REQUEST);</span>
         }
         
-<span class="fc" id="L677">        BookingResponseDTO response = bookingRestService.processRefund(request.getBookingID(), request);</span>
+<span class="fc" id="L676">        BookingResponseDTO response = bookingRestService.processRefund(request.getBookingID(), request);</span>
         
-<span class="fc" id="L679">        baseResponseDTO.setStatus(HttpStatus.OK.value());</span>
-<span class="fc" id="L680">        baseResponseDTO.setData(response);</span>
-<span class="fc" id="L681">        baseResponseDTO.setMessage(&quot;✅ Konfirmasi: Refund berhasil diproses sebesar Rp &quot; + booking.getRefund());</span>
-<span class="fc" id="L682">        baseResponseDTO.setTimestamp(new Date());</span>
-<span class="fc" id="L683">        return new ResponseEntity&lt;&gt;(baseResponseDTO, HttpStatus.OK);</span>
+<span class="fc" id="L678">        baseResponseDTO.setStatus(HttpStatus.OK.value());</span>
+<span class="fc" id="L679">        baseResponseDTO.setData(response);</span>
+<span class="fc" id="L680">        baseResponseDTO.setMessage(&quot;✅ Konfirmasi: Refund berhasil diproses sebesar Rp &quot; + booking.getRefund());</span>
+<span class="fc" id="L681">        baseResponseDTO.setTimestamp(new Date());</span>
+<span class="fc" id="L682">        return new ResponseEntity&lt;&gt;(baseResponseDTO, HttpStatus.OK);</span>
         
-<span class="fc" id="L685">    } catch (Exception ex) {</span>
-<span class="fc" id="L686">        baseResponseDTO.setStatus(HttpStatus.INTERNAL_SERVER_ERROR.value());</span>
-<span class="fc" id="L687">        baseResponseDTO.setMessage(&quot;❌ Konfirmasi: &quot; + ex.getMessage());</span>
-<span class="fc" id="L688">        baseResponseDTO.setTimestamp(new Date());</span>
-<span class="fc" id="L689">        return new ResponseEntity&lt;&gt;(baseResponseDTO, HttpStatus.INTERNAL_SERVER_ERROR);</span>
+<span class="fc" id="L684">    } catch (Exception ex) {</span>
+<span class="fc" id="L685">        baseResponseDTO.setStatus(HttpStatus.INTERNAL_SERVER_ERROR.value());</span>
+<span class="fc" id="L686">        baseResponseDTO.setMessage(&quot;❌ Konfirmasi: &quot; + ex.getMessage());</span>
+<span class="fc" id="L687">        baseResponseDTO.setTimestamp(new Date());</span>
+<span class="fc" id="L688">        return new ResponseEntity&lt;&gt;(baseResponseDTO, HttpStatus.INTERNAL_SERVER_ERROR);</span>
     }
 }
 @GetMapping(CHART_BOOKING)
@@ -694,56 +693,56 @@ public ResponseEntity&lt;BaseResponseDTO&lt;List&lt;BookingChartResponseDTO&gt;&
         @RequestParam(required = false) Integer month,
         @RequestParam(required = false) Integer year) {
     
-<span class="fc" id="L697">    var baseResponseDTO = new BaseResponseDTO&lt;List&lt;BookingChartResponseDTO&gt;&gt;();</span>
+<span class="fc" id="L696">    var baseResponseDTO = new BaseResponseDTO&lt;List&lt;BookingChartResponseDTO&gt;&gt;();</span>
     
     try {
         // ✅ Validate month (1-12)
-<span class="pc bpc" id="L701" title="1 of 6 branches missed.">        if (month != null &amp;&amp; (month &lt; 1 || month &gt; 12)) {</span>
-<span class="fc" id="L702">            baseResponseDTO.setStatus(HttpStatus.BAD_REQUEST.value());</span>
-<span class="fc" id="L703">            baseResponseDTO.setMessage(&quot;❌ Month must be between 1 and 12&quot;);</span>
-<span class="fc" id="L704">            baseResponseDTO.setTimestamp(new Date());</span>
-<span class="fc" id="L705">            return new ResponseEntity&lt;&gt;(baseResponseDTO, HttpStatus.BAD_REQUEST);</span>
+<span class="pc bpc" id="L700" title="1 of 6 branches missed.">        if (month != null &amp;&amp; (month &lt; 1 || month &gt; 12)) {</span>
+<span class="fc" id="L701">            baseResponseDTO.setStatus(HttpStatus.BAD_REQUEST.value());</span>
+<span class="fc" id="L702">            baseResponseDTO.setMessage(&quot;❌ Month must be between 1 and 12&quot;);</span>
+<span class="fc" id="L703">            baseResponseDTO.setTimestamp(new Date());</span>
+<span class="fc" id="L704">            return new ResponseEntity&lt;&gt;(baseResponseDTO, HttpStatus.BAD_REQUEST);</span>
         }
         
         // ✅ Validate year (reasonable range)
-<span class="pc bpc" id="L709" title="1 of 6 branches missed.">        if (year != null &amp;&amp; (year &lt; 2000 || year &gt; 2100)) {</span>
-<span class="fc" id="L710">            baseResponseDTO.setStatus(HttpStatus.BAD_REQUEST.value());</span>
-<span class="fc" id="L711">            baseResponseDTO.setMessage(&quot;❌ Year must be between 2000 and 2100&quot;);</span>
-<span class="fc" id="L712">            baseResponseDTO.setTimestamp(new Date());</span>
-<span class="fc" id="L713">            return new ResponseEntity&lt;&gt;(baseResponseDTO, HttpStatus.BAD_REQUEST);</span>
+<span class="pc bpc" id="L708" title="1 of 6 branches missed.">        if (year != null &amp;&amp; (year &lt; 2000 || year &gt; 2100)) {</span>
+<span class="fc" id="L709">            baseResponseDTO.setStatus(HttpStatus.BAD_REQUEST.value());</span>
+<span class="fc" id="L710">            baseResponseDTO.setMessage(&quot;❌ Year must be between 2000 and 2100&quot;);</span>
+<span class="fc" id="L711">            baseResponseDTO.setTimestamp(new Date());</span>
+<span class="fc" id="L712">            return new ResponseEntity&lt;&gt;(baseResponseDTO, HttpStatus.BAD_REQUEST);</span>
         }
         
         // ✅ Get chart data
-<span class="fc" id="L717">        List&lt;BookingChartResponseDTO&gt; chartData = bookingRestService.getBookingChartData(month, year);</span>
+<span class="fc" id="L716">        List&lt;BookingChartResponseDTO&gt; chartData = bookingRestService.getBookingChartData(month, year);</span>
         
         // ✅ Build success message
-<span class="fc" id="L720">        String periodText = &quot;&quot;;</span>
-<span class="pc bpc" id="L721" title="1 of 4 branches missed.">        if (month != null &amp;&amp; year != null) {</span>
-<span class="fc" id="L722">            String[] monthNames = {&quot;&quot;, &quot;January&quot;, &quot;February&quot;, &quot;March&quot;, &quot;April&quot;, &quot;May&quot;, &quot;June&quot;, </span>
+<span class="fc" id="L719">        String periodText = &quot;&quot;;</span>
+<span class="pc bpc" id="L720" title="1 of 4 branches missed.">        if (month != null &amp;&amp; year != null) {</span>
+<span class="fc" id="L721">            String[] monthNames = {&quot;&quot;, &quot;January&quot;, &quot;February&quot;, &quot;March&quot;, &quot;April&quot;, &quot;May&quot;, &quot;June&quot;, </span>
                                   &quot;July&quot;, &quot;August&quot;, &quot;September&quot;, &quot;October&quot;, &quot;November&quot;, &quot;December&quot;};
-<span class="fc" id="L724">            periodText = monthNames[month] + &quot; &quot; + year;</span>
-<span class="pc bpc" id="L725" title="1 of 2 branches missed.">        } else if (year != null) {</span>
-<span class="nc" id="L726">            periodText = &quot;Year &quot; + year;</span>
-<span class="pc bpc" id="L727" title="1 of 2 branches missed.">        } else if (month != null) {</span>
-<span class="nc" id="L728">            String[] monthNames = {&quot;&quot;, &quot;January&quot;, &quot;February&quot;, &quot;March&quot;, &quot;April&quot;, &quot;May&quot;, &quot;June&quot;, </span>
+<span class="fc" id="L723">            periodText = monthNames[month] + &quot; &quot; + year;</span>
+<span class="pc bpc" id="L724" title="1 of 2 branches missed.">        } else if (year != null) {</span>
+<span class="nc" id="L725">            periodText = &quot;Year &quot; + year;</span>
+<span class="pc bpc" id="L726" title="1 of 2 branches missed.">        } else if (month != null) {</span>
+<span class="nc" id="L727">            String[] monthNames = {&quot;&quot;, &quot;January&quot;, &quot;February&quot;, &quot;March&quot;, &quot;April&quot;, &quot;May&quot;, &quot;June&quot;, </span>
                                   &quot;July&quot;, &quot;August&quot;, &quot;September&quot;, &quot;October&quot;, &quot;November&quot;, &quot;December&quot;};
-<span class="nc" id="L730">            periodText = monthNames[month];</span>
-<span class="nc" id="L731">        } else {</span>
-<span class="fc" id="L732">            periodText = &quot;All Time&quot;;</span>
+<span class="nc" id="L729">            periodText = monthNames[month];</span>
+<span class="nc" id="L730">        } else {</span>
+<span class="fc" id="L731">            periodText = &quot;All Time&quot;;</span>
         }
         
-<span class="fc" id="L735">        baseResponseDTO.setStatus(HttpStatus.OK.value());</span>
-<span class="fc" id="L736">        baseResponseDTO.setData(chartData);</span>
-<span class="fc" id="L737">        baseResponseDTO.setMessage(&quot;✅ Property Income Statistics for &quot; + periodText + </span>
-<span class="fc" id="L738">                                  &quot; (&quot; + chartData.size() + &quot; properties)&quot;);</span>
-<span class="fc" id="L739">        baseResponseDTO.setTimestamp(new Date());</span>
-<span class="fc" id="L740">        return new ResponseEntity&lt;&gt;(baseResponseDTO, HttpStatus.OK);</span>
+<span class="fc" id="L734">        baseResponseDTO.setStatus(HttpStatus.OK.value());</span>
+<span class="fc" id="L735">        baseResponseDTO.setData(chartData);</span>
+<span class="fc" id="L736">        baseResponseDTO.setMessage(&quot;✅ Property Income Statistics for &quot; + periodText + </span>
+<span class="fc" id="L737">                                  &quot; (&quot; + chartData.size() + &quot; properties)&quot;);</span>
+<span class="fc" id="L738">        baseResponseDTO.setTimestamp(new Date());</span>
+<span class="fc" id="L739">        return new ResponseEntity&lt;&gt;(baseResponseDTO, HttpStatus.OK);</span>
         
-<span class="fc" id="L742">    } catch (Exception ex) {</span>
-<span class="fc" id="L743">        baseResponseDTO.setStatus(HttpStatus.INTERNAL_SERVER_ERROR.value());</span>
-<span class="fc" id="L744">        baseResponseDTO.setMessage(&quot;❌ Error: &quot; + ex.getMessage());</span>
-<span class="fc" id="L745">        baseResponseDTO.setTimestamp(new Date());</span>
-<span class="fc" id="L746">        return new ResponseEntity&lt;&gt;(baseResponseDTO, HttpStatus.INTERNAL_SERVER_ERROR);</span>
+<span class="fc" id="L741">    } catch (Exception ex) {</span>
+<span class="fc" id="L742">        baseResponseDTO.setStatus(HttpStatus.INTERNAL_SERVER_ERROR.value());</span>
+<span class="fc" id="L743">        baseResponseDTO.setMessage(&quot;❌ Error: &quot; + ex.getMessage());</span>
+<span class="fc" id="L744">        baseResponseDTO.setTimestamp(new Date());</span>
+<span class="fc" id="L745">        return new ResponseEntity&lt;&gt;(baseResponseDTO, HttpStatus.INTERNAL_SERVER_ERROR);</span>
     }
     }
 }

@@ -17,7 +17,7 @@ public interface BookingRepository extends JpaRepository<Booking, String> {
     List<Booking> findByStatus(int status);
     List<Booking> findByCustomerEmail(String email);
     @Query("SELECT b FROM Booking b WHERE b.room.roomID = :roomID " +
-           "AND b.status = 1 " +
+           "AND b.status IN (0,1) " +
            "AND (" +
            "  (b.checkInDate < :endDate AND b.checkOutDate > :startDate)" +
            ")")

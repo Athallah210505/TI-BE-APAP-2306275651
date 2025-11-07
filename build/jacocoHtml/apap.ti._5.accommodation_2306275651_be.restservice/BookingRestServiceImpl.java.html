@@ -25,927 +25,1018 @@ import apap.ti._5.accommodation_2306275651_be.restdto.response.booking.BookingRe
 
 @Service
 @Transactional
-<span class="fc" id="L28">public class BookingRestServiceImpl implements BookingRestService {</span>
+public class BookingRestServiceImpl implements BookingRestService {
     
-    @Autowired
-    private BookingRepository bookingRepository;
+    private final BookingRepository bookingRepository;
+    private final RoomRepository roomRepository;
+    private final PropertyRepository propertyRepository;
+
+    // ✅ Constructor Dependency Injection
+    public BookingRestServiceImpl(
+            BookingRepository bookingRepository,
+            RoomRepository roomRepository,
+<span class="fc" id="L38">            PropertyRepository propertyRepository) {</span>
+<span class="fc" id="L39">        this.bookingRepository = bookingRepository;</span>
+<span class="fc" id="L40">        this.roomRepository = roomRepository;</span>
+<span class="fc" id="L41">        this.propertyRepository = propertyRepository;</span>
+<span class="fc" id="L42">    }</span>
+
+    private LocalDateTime[] normalizeBookingDates(LocalDateTime checkInDateInput, LocalDateTime checkOutDateInput) {
+        // ✅ Untuk perhitungan totalDays: set jam 00:00:00
+<span class="fc" id="L46">        LocalDateTime checkInForCalculation = checkInDateInput</span>
+<span class="fc" id="L47">            .withHour(0)</span>
+<span class="fc" id="L48">            .withMinute(0)</span>
+<span class="fc" id="L49">            .withSecond(0)</span>
+<span class="fc" id="L50">            .withNano(0);</span>
+        
+<span class="fc" id="L52">        LocalDateTime checkOutForCalculation = checkOutDateInput</span>
+<span class="fc" id="L53">            .withHour(0)</span>
+<span class="fc" id="L54">            .withMinute(0)</span>
+<span class="fc" id="L55">            .withSecond(0)</span>
+<span class="fc" id="L56">            .withNano(0);</span>
+        
+        // ✅ Untuk penyimpanan ke database: check-in jam 14:00, check-out jam 12:00
+<span class="fc" id="L59">        LocalDateTime checkInForStorage = checkInDateInput</span>
+<span class="fc" id="L60">            .withHour(14)  // 2 PM</span>
+<span class="fc" id="L61">            .withMinute(0)</span>
+<span class="fc" id="L62">            .withSecond(0)</span>
+<span class="fc" id="L63">            .withNano(0);</span>
+        
+<span class="fc" id="L65">        LocalDateTime checkOutForStorage = checkOutDateInput</span>
+<span class="fc" id="L66">            .withHour(12)  // 12 PM</span>
+<span class="fc" id="L67">            .withMinute(0)</span>
+<span class="fc" id="L68">            .withSecond(0)</span>
+<span class="fc" id="L69">            .withNano(0);</span>
+        
+<span class="fc" id="L71">        return new LocalDateTime[]{</span>
+            checkInForCalculation, 
+            checkOutForCalculation, 
+            checkInForStorage, 
+            checkOutForStorage
+        };
+    }
+
+
+
+    @Override
+    public BookingResponseDTO createBooking(CreateBookingRequestDTO dto) {
     
-    @Autowired
-    private RoomRepository roomRepository;
-    
-    @Autowired
-    private PropertyRepository propertyRepository;
-
-   @Override
-public BookingResponseDTO createBooking(CreateBookingRequestDTO dto) {
-
-
-<span class="fc" id="L43">    boolean hasConflict = checkBookingConflict(</span>
-<span class="fc" id="L44">            dto.getRoomID(),</span>
-<span class="fc" id="L45">            dto.getCheckInDate(),</span>
-<span class="fc" id="L46">            dto.getCheckOutDate(),</span>
-            null // No exclude ID for new booking
+<span class="fc" id="L84">        boolean hasConflict = checkBookingConflict(</span>
+<span class="fc" id="L85">                dto.getRoomID(),</span>
+<span class="fc" id="L86">                dto.getCheckInDate(),</span>
+<span class="fc" id="L87">                dto.getCheckOutDate(),</span>
+                null // No exclude ID for new booking
+            );
+            
+<span class="pc bpc" id="L91" title="1 of 2 branches missed.">            if (hasConflict) {</span>
+<span class="nc" id="L92">                System.err.println(&quot;   ❌ BOOKING CONFLICT DETECTED!&quot;);</span>
+<span class="nc" id="L93">                throw new RuntimeException(&quot;Kamar sudah dibooking pada tanggal tersebut. Silakan pilih tanggal lain.&quot;);</span>
+            }
+        // ✅ Validate dates
+<span class="pc bpc" id="L96" title="1 of 2 branches missed.">        if (dto.getCheckOutDate().toLocalDate().isBefore(dto.getCheckInDate().toLocalDate()) || </span>
+<span class="fc bfc" id="L97" title="All 2 branches covered.">            dto.getCheckOutDate().toLocalDate().isEqual(dto.getCheckInDate().toLocalDate())) {</span>
+<span class="fc" id="L98">            throw new RuntimeException(&quot;Check-out date must be at least 1 day after check-in date&quot;);</span>
+        }
+        
+        // ✅ Normalize dates: untuk perhitungan (00:00) dan untuk storage (14:00 &amp; 12:00)
+<span class="fc" id="L102">        LocalDateTime[] normalizedDates = normalizeBookingDates(dto.getCheckInDate(), dto.getCheckOutDate());</span>
+<span class="fc" id="L103">        LocalDateTime checkInForCalculation = normalizedDates[0];</span>
+<span class="fc" id="L104">        LocalDateTime checkOutForCalculation = normalizedDates[1];</span>
+<span class="fc" id="L105">        LocalDateTime checkInForStorage = normalizedDates[2];</span>
+<span class="fc" id="L106">        LocalDateTime checkOutForStorage = normalizedDates[3];</span>
+        
+        // ✅ FIX: Hitung selisih hari dengan benar menggunakan tanggal dengan jam 00:00:00
+<span class="fc" id="L109">        long totalDays = java.time.temporal.ChronoUnit.DAYS.between(</span>
+<span class="fc" id="L110">            checkInForCalculation.toLocalDate(), </span>
+<span class="fc" id="L111">            checkOutForCalculation.toLocalDate()</span>
         );
         
-<span class="pc bpc" id="L50" title="1 of 2 branches missed.">        if (hasConflict) {</span>
-<span class="nc" id="L51">            System.err.println(&quot;   ❌ BOOKING CONFLICT DETECTED!&quot;);</span>
-<span class="nc" id="L52">            throw new RuntimeException(&quot;Kamar sudah dibooking pada tanggal tersebut. Silakan pilih tanggal lain.&quot;);</span>
+        // ✅ Pastikan minimal 1 hari
+<span class="pc bpc" id="L115" title="1 of 2 branches missed.">        if (totalDays &lt; 1) {</span>
+<span class="nc" id="L116">            totalDays = 1;</span>
         }
-    // ✅ Validate dates
-<span class="pc bpc" id="L55" title="1 of 2 branches missed.">    if (dto.getCheckOutDate().isBefore(dto.getCheckInDate()) || </span>
-<span class="fc bfc" id="L56" title="All 2 branches covered.">        dto.getCheckOutDate().isEqual(dto.getCheckInDate())) {</span>
-<span class="fc" id="L57">        throw new RuntimeException(&quot;Check-out date must be at least 1 day after check-in date&quot;);</span>
+        
+<span class="fc" id="L119">        System.out.println(&quot;Calculating booking duration:&quot;);</span>
+<span class="fc" id="L120">        System.out.println(&quot;   Check-in (for calculation): &quot; + checkInForCalculation);</span>
+<span class="fc" id="L121">        System.out.println(&quot;   Check-out (for calculation): &quot; + checkOutForCalculation);</span>
+<span class="fc" id="L122">        System.out.println(&quot;   Total Days: &quot; + totalDays);</span>
+<span class="fc" id="L123">        System.out.println(&quot;   Check-in (for storage): &quot; + checkInForStorage);</span>
+<span class="fc" id="L124">        System.out.println(&quot;   Check-out (for storage): &quot; + checkOutForStorage);</span>
+        
+        // ✅ Get Room entity
+<span class="fc" id="L127">        Room room = null;</span>
+<span class="pc bpc" id="L128" title="2 of 4 branches missed.">        if (dto.getRoomID() != null &amp;&amp; !dto.getRoomID().isEmpty()) {</span>
+<span class="fc" id="L129">            room = roomRepository.findById(dto.getRoomID())</span>
+<span class="fc" id="L130">                    .orElseThrow(() -&gt; new RuntimeException(&quot;Room not found with id: &quot; + dto.getRoomID()));</span>
+        } else {
+<span class="nc" id="L132">            throw new RuntimeException(&quot;Room ID is required for booking&quot;);</span>
+        }
+        
+        // ✅ Validate capacity
+<span class="pc bpc" id="L136" title="1 of 4 branches missed.">        if (room.getRoomType() != null &amp;&amp; dto.getCapacity() &gt; room.getRoomType().getCapacity()) {</span>
+<span class="fc" id="L137">            throw new RuntimeException(&quot;Capacity (&quot; + dto.getCapacity() + </span>
+<span class="fc" id="L138">                                      &quot;) exceeds room capacity (&quot; + room.getRoomType().getCapacity() + &quot;)&quot;);</span>
+        }
+        
+        // ✅ Generate Booking ID
+<span class="fc" id="L142">        String bookingID = generateBookingID(room.getRoomID());</span>
+        
+        // ✅ FIX: Calculate price dengan long untuk menghindari overflow
+<span class="fc" id="L145">        long basePrice = room.getRoomType().getPrice(); // Price PER NIGHT</span>
+<span class="pc bpc" id="L146" title="2 of 4 branches missed.">        long breakfastPrice = (dto.getIsBreakfast() != null &amp;&amp; dto.getIsBreakfast()) ? 50000L : 0L; // Per night</span>
+        
+        // ✅ Total price = (base + breakfast) * total days (gunakan long)
+<span class="fc" id="L149">        long totalPriceLong = (basePrice + breakfastPrice) * totalDays;</span>
+    
+        // ✅ Validasi agar tidak melebihi max int
+<span class="pc bpc" id="L152" title="1 of 2 branches missed.">        if (totalPriceLong &gt; Integer.MAX_VALUE) {</span>
+<span class="nc" id="L153">            throw new RuntimeException(&quot;Total price exceeds maximum value. Please reduce booking duration.&quot;);</span>
+        }
+    
+<span class="fc" id="L156">        int totalPrice = (int) totalPriceLong;</span>
+        
+<span class="fc" id="L158">        System.out.println(&quot;💰 Calculating booking price:&quot;);</span>
+<span class="fc" id="L159">        System.out.println(&quot;   Base Price: Rp &quot; + basePrice + &quot; per night&quot;);</span>
+<span class="fc" id="L160">        System.out.println(&quot;   Breakfast: Rp &quot; + breakfastPrice + &quot; per night&quot;);</span>
+<span class="fc" id="L161">        System.out.println(&quot;   Total Days: &quot; + totalDays + &quot; nights&quot;);</span>
+<span class="fc" id="L162">        System.out.println(&quot;   Total Price: Rp &quot; + totalPrice + &quot; (= (Rp &quot; + basePrice + &quot; + Rp &quot; + breakfastPrice + &quot;) × &quot; + totalDays + &quot;)&quot;);</span>
+        
+        // ✅ Parse customerID String ke UUID
+<span class="fc" id="L165">        UUID customerUUID = UUID.fromString(dto.getCustomerID());</span>
+        
+        // ✅ Build Booking entity dengan waktu yang sudah di-normalize untuk storage
+<span class="fc" id="L168">        Booking booking = Booking.builder()</span>
+<span class="fc" id="L169">                .bookingID(bookingID)</span>
+<span class="fc" id="L170">                .checkInDate(checkInForStorage)  // ✅ Gunakan checkInForStorage (jam 14:00)</span>
+<span class="fc" id="L171">                .checkOutDate(checkOutForStorage)  // ✅ Gunakan checkOutForStorage (jam 12:00)</span>
+<span class="fc" id="L172">                .totalDays((int) totalDays)</span>
+<span class="fc" id="L173">                .totalPrice(totalPrice)</span>
+<span class="fc" id="L174">                .status(0) // 0 = Waiting for Payment</span>
+<span class="fc" id="L175">                .customerID(customerUUID)</span>
+<span class="fc" id="L176">                .customerName(dto.getCustomerName())</span>
+<span class="fc" id="L177">                .customerEmail(dto.getCustomerEmail())</span>
+<span class="fc" id="L178">                .customerPhone(dto.getCustomerPhone())</span>
+<span class="pc bpc" id="L179" title="1 of 2 branches missed.">                .isBreakfast(dto.getIsBreakfast() != null ? dto.getIsBreakfast() : false)</span>
+<span class="fc" id="L180">                .capacity(dto.getCapacity())</span>
+<span class="fc" id="L181">                .refund(0)</span>
+<span class="fc" id="L182">                .extraPay(0)</span>
+<span class="fc" id="L183">                .room(room)</span>
+<span class="fc" id="L184">                .build();</span>
+        
+        // ✅ Save booking
+<span class="fc" id="L187">        Booking savedBooking = bookingRepository.save(booking);</span>
+        
+<span class="fc" id="L189">        System.out.println(&quot;✅ Booking created:&quot;);</span>
+<span class="fc" id="L190">        System.out.println(&quot;   Booking ID: &quot; + savedBooking.getBookingID());</span>
+<span class="fc" id="L191">        System.out.println(&quot;   Room ID: &quot; + savedBooking.getRoom().getRoomID());</span>
+<span class="fc" id="L192">        System.out.println(&quot;   Customer: &quot; + savedBooking.getCustomerName());</span>
+<span class="fc" id="L193">        System.out.println(&quot;   Total Days: &quot; + savedBooking.getTotalDays());</span>
+<span class="fc" id="L194">        System.out.println(&quot;   Total Price: Rp &quot; + savedBooking.getTotalPrice());</span>
+        
+<span class="fc" id="L196">        return convertToResponseDTO(savedBooking);</span>
     }
-    
-    // ✅ Calculate total days (PENTING: gunakan between untuk date, bukan datetime!)
-<span class="fc" id="L61">    LocalDateTime checkIn = dto.getCheckInDate();</span>
-<span class="fc" id="L62">    LocalDateTime checkOut = dto.getCheckOutDate();</span>
-    
-    // ✅ FIX: Hitung selisih hari dengan benar (gunakan toLocalDate untuk akurat)
-<span class="fc" id="L65">    long totalDays = java.time.temporal.ChronoUnit.DAYS.between(</span>
-<span class="fc" id="L66">        checkIn.toLocalDate(), </span>
-<span class="fc" id="L67">        checkOut.toLocalDate()</span>
-    );
-    
-    // ✅ Pastikan minimal 1 hari
-<span class="pc bpc" id="L71" title="1 of 2 branches missed.">    if (totalDays &lt; 1) {</span>
-<span class="nc" id="L72">        totalDays = 1;</span>
-    }
-    
-<span class="fc" id="L75">    System.out.println(&quot;📅 Calculating booking duration:&quot;);</span>
-<span class="fc" id="L76">    System.out.println(&quot;   Check-in: &quot; + checkIn);</span>
-<span class="fc" id="L77">    System.out.println(&quot;   Check-out: &quot; + checkOut);</span>
-<span class="fc" id="L78">    System.out.println(&quot;   Total Days: &quot; + totalDays);</span>
-    
-    // ✅ Get Room entity
-<span class="fc" id="L81">    Room room = null;</span>
-<span class="pc bpc" id="L82" title="2 of 4 branches missed.">    if (dto.getRoomID() != null &amp;&amp; !dto.getRoomID().isEmpty()) {</span>
-<span class="fc" id="L83">        room = roomRepository.findById(dto.getRoomID())</span>
-<span class="fc" id="L84">                .orElseThrow(() -&gt; new RuntimeException(&quot;Room not found with id: &quot; + dto.getRoomID()));</span>
-    } else {
-<span class="nc" id="L86">        throw new RuntimeException(&quot;Room ID is required for booking&quot;);</span>
-    }
-    
-    // ✅ Validate capacity
-<span class="pc bpc" id="L90" title="1 of 4 branches missed.">    if (room.getRoomType() != null &amp;&amp; dto.getCapacity() &gt; room.getRoomType().getCapacity()) {</span>
-<span class="fc" id="L91">        throw new RuntimeException(&quot;Capacity (&quot; + dto.getCapacity() + </span>
-<span class="fc" id="L92">                                  &quot;) exceeds room capacity (&quot; + room.getRoomType().getCapacity() + &quot;)&quot;);</span>
-    }
-    
-    // ✅ Generate Booking ID
-<span class="fc" id="L96">    String bookingID = generateBookingID(room.getRoomID());</span>
-    
-    // ✅ FIX: Calculate price PER NIGHT * totalDays
-<span class="fc" id="L99">    int basePrice = room.getRoomType().getPrice(); // Price PER NIGHT</span>
-<span class="pc bpc" id="L100" title="2 of 4 branches missed.">    int breakfastPrice = (dto.getIsBreakfast() != null &amp;&amp; dto.getIsBreakfast()) ? 50000 : 0; // Per night</span>
-    
-    // ✅ Total price = (base + breakfast) * total days
-<span class="fc" id="L103">    int totalPrice = (int) ((basePrice + breakfastPrice) * totalDays);</span>
-    
-<span class="fc" id="L105">    System.out.println(&quot; Calculating booking price:&quot;);</span>
-<span class="fc" id="L106">    System.out.println(&quot;   Base Price: Rp &quot; + basePrice + &quot; per night&quot;);</span>
-<span class="fc" id="L107">    System.out.println(&quot;   Breakfast: Rp &quot; + breakfastPrice + &quot; per night&quot;);</span>
-<span class="fc" id="L108">    System.out.println(&quot;   Total Days: &quot; + totalDays + &quot; nights&quot;);</span>
-<span class="fc" id="L109">    System.out.println(&quot;   Total Price: Rp &quot; + totalPrice + &quot; (= (Rp &quot; + basePrice + &quot; + Rp &quot; + breakfastPrice + &quot;) × &quot; + totalDays + &quot;)&quot;);</span>
-    
-    // ✅ Parse customerID String ke UUID
-<span class="fc" id="L112">    UUID customerUUID = UUID.fromString(dto.getCustomerID());</span>
-    
-    // ✅ Build Booking entity
-<span class="fc" id="L115">    Booking booking = Booking.builder()</span>
-<span class="fc" id="L116">            .bookingID(bookingID)</span>
-<span class="fc" id="L117">            .checkInDate(dto.getCheckInDate())</span>
-<span class="fc" id="L118">            .checkOutDate(dto.getCheckOutDate())</span>
-<span class="fc" id="L119">            .totalDays((int) totalDays)</span>
-<span class="fc" id="L120">            .totalPrice(totalPrice)</span>
-<span class="fc" id="L121">            .status(0) // 0 = Waiting for Payment</span>
-<span class="fc" id="L122">            .customerID(customerUUID)</span>
-<span class="fc" id="L123">            .customerName(dto.getCustomerName())</span>
-<span class="fc" id="L124">            .customerEmail(dto.getCustomerEmail())</span>
-<span class="fc" id="L125">            .customerPhone(dto.getCustomerPhone())</span>
-<span class="pc bpc" id="L126" title="1 of 2 branches missed.">            .isBreakfast(dto.getIsBreakfast() != null ? dto.getIsBreakfast() : false)</span>
-<span class="fc" id="L127">            .capacity(dto.getCapacity())</span>
-<span class="fc" id="L128">            .refund(0)</span>
-<span class="fc" id="L129">            .extraPay(0)</span>
-<span class="fc" id="L130">            .room(room)</span>
-<span class="fc" id="L131">            .build();</span>
-    
-    // ✅ Save booking
-<span class="fc" id="L134">    Booking savedBooking = bookingRepository.save(booking);</span>
-    
-<span class="fc" id="L136">    System.out.println(&quot;✅ Booking created:&quot;);</span>
-<span class="fc" id="L137">    System.out.println(&quot;   Booking ID: &quot; + savedBooking.getBookingID());</span>
-<span class="fc" id="L138">    System.out.println(&quot;   Room ID: &quot; + savedBooking.getRoom().getRoomID());</span>
-<span class="fc" id="L139">    System.out.println(&quot;   Customer: &quot; + savedBooking.getCustomerName());</span>
-<span class="fc" id="L140">    System.out.println(&quot;   Total Days: &quot; + savedBooking.getTotalDays());</span>
-<span class="fc" id="L141">    System.out.println(&quot;   Total Price: Rp &quot; + savedBooking.getTotalPrice());</span>
-    
-<span class="fc" id="L143">    return convertToResponseDTO(savedBooking);</span>
-}
-// ✅ HELPER METHOD: Check booking conflict (internal use)
+// Check booking conflict (internal use)
     private boolean checkBookingConflict(
             String roomID, 
             LocalDateTime checkInDate, 
             LocalDateTime checkOutDate,
             String excludeBookingID) {
         
-<span class="fc" id="L152">        System.out.println(&quot;🔍 Checking booking conflicts:&quot;);</span>
-<span class="fc" id="L153">        System.out.println(&quot;   Room ID: &quot; + roomID);</span>
-<span class="fc" id="L154">        System.out.println(&quot;   Check-in: &quot; + checkInDate);</span>
-<span class="fc" id="L155">        System.out.println(&quot;   Check-out: &quot; + checkOutDate);</span>
-<span class="pc bpc" id="L156" title="1 of 2 branches missed.">        System.out.println(&quot;   Exclude Booking ID: &quot; + (excludeBookingID != null ? excludeBookingID : &quot;none&quot;));</span>
+<span class="fc" id="L205">        System.out.println(&quot;🔍 Checking booking conflicts:&quot;);</span>
+<span class="fc" id="L206">        System.out.println(&quot;   Room ID: &quot; + roomID);</span>
+<span class="fc" id="L207">        System.out.println(&quot;   Check-in: &quot; + checkInDate);</span>
+<span class="fc" id="L208">        System.out.println(&quot;   Check-out: &quot; + checkOutDate);</span>
+<span class="pc bpc" id="L209" title="1 of 2 branches missed.">        System.out.println(&quot;   Exclude Booking ID: &quot; + (excludeBookingID != null ? excludeBookingID : &quot;none&quot;));</span>
         
         try {
             //  Get active bookings (status 0 &amp; 1) untuk room ini
-<span class="fc" id="L160">            List&lt;Booking&gt; activeBookings = bookingRepository.findByRoom_RoomIDAndStatus(roomID, 0);</span>
-<span class="fc" id="L161">            activeBookings.addAll(bookingRepository.findByRoom_RoomIDAndStatus(roomID, 1));</span>
+<span class="fc" id="L213">            List&lt;Booking&gt; activeBookings = bookingRepository.findByRoom_RoomIDAndStatus(roomID, 0);</span>
+<span class="fc" id="L214">            activeBookings.addAll(bookingRepository.findByRoom_RoomIDAndStatus(roomID, 1));</span>
             
-<span class="fc" id="L163">            System.out.println(&quot;   Total active bookings for this room: &quot; + activeBookings.size());</span>
+<span class="fc" id="L216">            System.out.println(&quot;   Total active bookings for this room: &quot; + activeBookings.size());</span>
             
             // ✅ Filter: check overlap (exclude current booking if update)
-<span class="fc" id="L166">            List&lt;Booking&gt; conflicts = activeBookings.stream()</span>
-<span class="pc bnc" id="L167" title="All 4 branches missed.">                .filter(b -&gt; excludeBookingID == null || !b.getBookingID().equals(excludeBookingID))</span>
-<span class="fc" id="L168">                .filter(b -&gt; {</span>
+<span class="fc" id="L219">            List&lt;Booking&gt; conflicts = activeBookings.stream()</span>
+<span class="pc bnc" id="L220" title="All 4 branches missed.">                .filter(b -&gt; excludeBookingID == null || !b.getBookingID().equals(excludeBookingID))</span>
+<span class="fc" id="L221">                .filter(b -&gt; {</span>
                     // CRITICAL: Check if booking dates overlap
                     // Overlap occurs if:
                     // (new_checkin &lt; existing_checkout) AND (new_checkout &gt; existing_checkin)
-<span class="nc bnc" id="L172" title="All 2 branches missed.">                    boolean overlaps = checkInDate.isBefore(b.getCheckOutDate()) &amp;&amp; </span>
-<span class="nc bnc" id="L173" title="All 2 branches missed.">                                      checkOutDate.isAfter(b.getCheckInDate());</span>
+<span class="nc bnc" id="L225" title="All 2 branches missed.">                    boolean overlaps = checkInDate.isBefore(b.getCheckOutDate()) &amp;&amp; </span>
+<span class="nc bnc" id="L226" title="All 2 branches missed.">                                      checkOutDate.isAfter(b.getCheckInDate());</span>
                     
-<span class="nc bnc" id="L175" title="All 2 branches missed.">                    if (overlaps) {</span>
-<span class="nc" id="L176">                        System.out.println(&quot;   ⚠️ OVERLAP DETECTED:&quot;);</span>
-<span class="nc" id="L177">                        System.out.println(&quot;      Existing Booking ID: &quot; + b.getBookingID());</span>
-<span class="nc" id="L178">                        System.out.println(&quot;      Existing Check-in: &quot; + b.getCheckInDate());</span>
-<span class="nc" id="L179">                        System.out.println(&quot;      Existing Check-out: &quot; + b.getCheckOutDate());</span>
-<span class="nc" id="L180">                        System.out.println(&quot;      New Check-in: &quot; + checkInDate);</span>
-<span class="nc" id="L181">                        System.out.println(&quot;      New Check-out: &quot; + checkOutDate);</span>
+<span class="nc bnc" id="L228" title="All 2 branches missed.">                    if (overlaps) {</span>
+<span class="nc" id="L229">                        System.out.println(&quot;   ⚠️ OVERLAP DETECTED:&quot;);</span>
+<span class="nc" id="L230">                        System.out.println(&quot;      Existing Booking ID: &quot; + b.getBookingID());</span>
+<span class="nc" id="L231">                        System.out.println(&quot;      Existing Check-in: &quot; + b.getCheckInDate());</span>
+<span class="nc" id="L232">                        System.out.println(&quot;      Existing Check-out: &quot; + b.getCheckOutDate());</span>
+<span class="nc" id="L233">                        System.out.println(&quot;      New Check-in: &quot; + checkInDate);</span>
+<span class="nc" id="L234">                        System.out.println(&quot;      New Check-out: &quot; + checkOutDate);</span>
                     }
                     
-<span class="nc" id="L184">                    return overlaps;</span>
+<span class="nc" id="L237">                    return overlaps;</span>
                 })
-<span class="fc" id="L186">                .collect(Collectors.toList());</span>
+<span class="fc" id="L239">                .collect(Collectors.toList());</span>
             
-<span class="pc bpc" id="L188" title="1 of 2 branches missed.">            if (!conflicts.isEmpty()) {</span>
-<span class="nc" id="L189">                System.out.println(&quot;   ❌ Found &quot; + conflicts.size() + &quot; conflicting booking(s)&quot;);</span>
-<span class="nc" id="L190">                return true;</span>
+<span class="pc bpc" id="L241" title="1 of 2 branches missed.">            if (!conflicts.isEmpty()) {</span>
+<span class="nc" id="L242">                System.out.println(&quot;   ❌ Found &quot; + conflicts.size() + &quot; conflicting booking(s)&quot;);</span>
+<span class="nc" id="L243">                return true;</span>
             }
             
-<span class="fc" id="L193">            System.out.println(&quot;   ✅ No conflicts found&quot;);</span>
-<span class="fc" id="L194">            return false;</span>
+<span class="fc" id="L246">            System.out.println(&quot;   ✅ No conflicts found&quot;);</span>
+<span class="fc" id="L247">            return false;</span>
             
-<span class="nc" id="L196">        } catch (Exception ex) {</span>
-<span class="nc" id="L197">            System.err.println(&quot;   ⚠️ Error checking booking conflict: &quot; + ex.getMessage());</span>
-<span class="nc" id="L198">            ex.printStackTrace();</span>
+<span class="nc" id="L249">        } catch (Exception ex) {</span>
+<span class="nc" id="L250">            System.err.println(&quot;   ⚠️ Error checking booking conflict: &quot; + ex.getMessage());</span>
+<span class="nc" id="L251">            ex.printStackTrace();</span>
             // ✅ Jika error, anggap ada conflict untuk safety
-<span class="nc" id="L200">            return true;</span>
+<span class="nc" id="L253">            return true;</span>
         }
     }
     
 // ✅ Helper method untuk generate Booking ID dari Room ID
 private String generateBookingID(String roomID) {
-<span class="pc bpc" id="L206" title="2 of 4 branches missed.">    if (roomID == null || roomID.isEmpty()) {</span>
-<span class="nc" id="L207">        throw new RuntimeException(&quot;Room ID is required for booking ID generation&quot;);</span>
+<span class="pc bpc" id="L259" title="2 of 4 branches missed.">    if (roomID == null || roomID.isEmpty()) {</span>
+<span class="nc" id="L260">        throw new RuntimeException(&quot;Room ID is required for booking ID generation&quot;);</span>
     }
     
     // ✅ Extract 7 digit terakhir dari Room ID
     // Format Room ID: APT-0000-004-101
     // Ambil: 004-101 (7 karakter terakhir setelah split)
-<span class="fc" id="L213">    String[] parts = roomID.split(&quot;-&quot;);</span>
+<span class="fc" id="L266">    String[] parts = roomID.split(&quot;-&quot;);</span>
     
-<span class="fc" id="L215">    String propertyCode = &quot;&quot;;</span>
-<span class="fc" id="L216">    String roomNumber = &quot;&quot;;</span>
+<span class="fc" id="L268">    String propertyCode = &quot;&quot;;</span>
+<span class="fc" id="L269">    String roomNumber = &quot;&quot;;</span>
     
-<span class="pc bpc" id="L218" title="1 of 2 branches missed.">    if (parts.length &gt;= 4) {</span>
+<span class="pc bpc" id="L271" title="1 of 2 branches missed.">    if (parts.length &gt;= 4) {</span>
         // APT-0000-004-101
         // parts[0] = APT
         // parts[1] = 0000
         // parts[2] = 004  ← property code
         // parts[3] = 101  ← room number
-<span class="fc" id="L224">        propertyCode = parts[parts.length - 2]; // 004</span>
-<span class="fc" id="L225">        roomNumber = parts[parts.length - 1];    // 101</span>
-<span class="nc bnc" id="L226" title="All 2 branches missed.">    } else if (parts.length &gt;= 2) {</span>
+<span class="fc" id="L277">        propertyCode = parts[parts.length - 2]; </span>
+<span class="fc" id="L278">        roomNumber = parts[parts.length - 1];    </span>
+<span class="nc bnc" id="L279" title="All 2 branches missed.">    } else if (parts.length &gt;= 2) {</span>
         // Fallback untuk format lain
-<span class="nc" id="L228">        propertyCode = parts[parts.length - 2];</span>
-<span class="nc" id="L229">        roomNumber = parts[parts.length - 1];</span>
+<span class="nc" id="L281">        propertyCode = parts[parts.length - 2];</span>
+<span class="nc" id="L282">        roomNumber = parts[parts.length - 1];</span>
     } else {
-<span class="nc" id="L231">        throw new RuntimeException(&quot;Invalid Room ID format: &quot; + roomID);</span>
+<span class="nc" id="L284">        throw new RuntimeException(&quot;Invalid Room ID format: &quot; + roomID);</span>
     }
     
     // ✅ Format datetime: yyyy-MM-dd-HH:mm:ss
-<span class="fc" id="L235">    LocalDateTime now = LocalDateTime.now();</span>
-<span class="fc" id="L236">    DateTimeFormatter formatter = DateTimeFormatter.ofPattern(&quot;yyyy-MM-dd-HH:mm:ss&quot;);</span>
-<span class="fc" id="L237">    String datetime = now.format(formatter);</span>
+<span class="fc" id="L288">    LocalDateTime now = LocalDateTime.now();</span>
+<span class="fc" id="L289">    DateTimeFormatter formatter = DateTimeFormatter.ofPattern(&quot;yyyy-MM-dd-HH:mm:ss&quot;);</span>
+<span class="fc" id="L290">    String datetime = now.format(formatter);</span>
     
     // ✅ Format: BOOK-{propertyCode}-{roomNumber}-{datetime}
     // Contoh: BOOK-004-101-2025-10-24-10:38:12
-<span class="fc" id="L241">    return String.format(&quot;BOOK-%s-%s-%s&quot;, propertyCode, roomNumber, datetime);</span>
+<span class="fc" id="L294">    return String.format(&quot;BOOK-%s-%s-%s&quot;, propertyCode, roomNumber, datetime);</span>
 }
     // ✅ TAMBAHKAN METHOD INI (yang missing)
     @Override
     public BookingResponseDTO getBookingById(String bookingID) {
-<span class="fc" id="L246">        Booking booking = bookingRepository.findById(bookingID)</span>
-<span class="fc" id="L247">                .orElseThrow(() -&gt; new RuntimeException(&quot;Booking not found with id: &quot; + bookingID));</span>
-<span class="fc" id="L248">        return convertToResponseDTO(booking);</span>
+<span class="fc" id="L299">        Booking booking = bookingRepository.findById(bookingID)</span>
+<span class="fc" id="L300">                .orElseThrow(() -&gt; new RuntimeException(&quot;Booking not found with id: &quot; + bookingID));</span>
+<span class="fc" id="L301">        return convertToResponseDTO(booking);</span>
     }
 
    
 
     @Override
     public List&lt;BookingResponseDTO&gt; getAllBookings() {
-<span class="fc" id="L255">        return bookingRepository.findAll().stream()</span>
-<span class="fc" id="L256">                .map(this::convertToResponseDTO)</span>
-<span class="fc" id="L257">                .collect(Collectors.toList());</span>
+<span class="fc" id="L308">        return bookingRepository.findAll().stream()</span>
+<span class="fc" id="L309">                .map(this::convertToResponseDTO)</span>
+<span class="fc" id="L310">                .collect(Collectors.toList());</span>
     }
 
     @Override
     public List&lt;BookingResponseDTO&gt; getBookingsByCustomer(String customerID) {
-<span class="fc" id="L262">        return bookingRepository.findByCustomerID(UUID.fromString(customerID)).stream()</span>
-<span class="fc" id="L263">                .map(this::convertToResponseDTO)</span>
-<span class="fc" id="L264">                .collect(Collectors.toList());</span>
+<span class="fc" id="L315">        return bookingRepository.findByCustomerID(UUID.fromString(customerID)).stream()</span>
+<span class="fc" id="L316">                .map(this::convertToResponseDTO)</span>
+<span class="fc" id="L317">                .collect(Collectors.toList());</span>
     }
 
     @Override
     public List&lt;BookingResponseDTO&gt; getBookingsByStatus(int status) {
-<span class="fc" id="L269">        return bookingRepository.findByStatus(status).stream()</span>
-<span class="fc" id="L270">                .map(this::convertToResponseDTO)</span>
-<span class="fc" id="L271">                .collect(Collectors.toList());</span>
+<span class="fc" id="L322">        return bookingRepository.findByStatus(status).stream()</span>
+<span class="fc" id="L323">                .map(this::convertToResponseDTO)</span>
+<span class="fc" id="L324">                .collect(Collectors.toList());</span>
     }
 
-   @Override
-public BookingResponseDTO updateBooking(String bookingID, UpdateBookingRequestDTO dto) {
-<span class="fc" id="L276">    Booking booking = bookingRepository.findById(bookingID)</span>
-<span class="fc" id="L277">            .orElseThrow(() -&gt; new RuntimeException(&quot;Booking not found with id: &quot; + bookingID));</span>
-    
-    // ✅ Simpan data LAMA untuk hitung refund/extra pay
-<span class="fc" id="L280">    int oldTotalPrice = booking.getTotalPrice();</span>
-<span class="fc" id="L281">    int oldStatus = booking.getStatus();</span>
-    
-<span class="fc" id="L283">    System.out.println(&quot;📝 Updating booking:&quot;);</span>
-<span class="fc" id="L284">    System.out.println(&quot;   Booking ID: &quot; + bookingID);</span>
-<span class="fc" id="L285">    System.out.println(&quot;   Old Status: &quot; + oldStatus);</span>
-<span class="fc" id="L286">    System.out.println(&quot;   Old Total Price: Rp &quot; + oldTotalPrice);</span>
-    
-    // ✅ Validate dates
-<span class="fc bfc" id="L289" title="All 2 branches covered.">    if (dto.getCheckOutDate().isBefore(dto.getCheckInDate()) ||</span>
-<span class="pc bpc" id="L290" title="1 of 2 branches missed.">        dto.getCheckOutDate().isEqual(dto.getCheckInDate())) {</span>
-<span class="fc" id="L291">        throw new RuntimeException(&quot;Check-out date must be at least 1 day after check-in date&quot;);</span>
-    }
-    
-    // ✅ Calculate total days
-<span class="fc" id="L295">    long totalDays = java.time.temporal.ChronoUnit.DAYS.between(</span>
-<span class="fc" id="L296">        dto.getCheckInDate().toLocalDate(), </span>
-<span class="fc" id="L297">        dto.getCheckOutDate().toLocalDate()</span>
-    );
-    
-<span class="pc bpc" id="L300" title="1 of 2 branches missed.">    if (totalDays &lt; 1) {</span>
-<span class="nc" id="L301">        totalDays = 1;</span>
-    }
-    
-    // ✅ Get Room (baru atau lama)
-<span class="fc" id="L305">    Room newRoom = null;</span>
-<span class="fc" id="L306">    boolean roomChanged = false;</span>
-    
-<span class="pc bpc" id="L308" title="1 of 4 branches missed.">    if (dto.getRoomID() != null &amp;&amp; !dto.getRoomID().isEmpty()) {</span>
-<span class="fc" id="L309">        newRoom = roomRepository.findById(dto.getRoomID())</span>
-<span class="fc" id="L310">                .orElseThrow(() -&gt; new RuntimeException(&quot;Room not found with id: &quot; + dto.getRoomID()));</span>
+    @Override
+    public BookingResponseDTO updateBooking(String bookingID, UpdateBookingRequestDTO dto) {
+<span class="fc" id="L329">        Booking booking = bookingRepository.findById(bookingID)</span>
+<span class="fc" id="L330">                .orElseThrow(() -&gt; new RuntimeException(&quot;Booking not found with id: &quot; + bookingID));</span>
         
-<span class="pc bpc" id="L312" title="1 of 4 branches missed.">        if (booking.getRoom() == null || !booking.getRoom().getRoomID().equals(dto.getRoomID())) {</span>
-<span class="fc" id="L313">            roomChanged = true;</span>
-<span class="fc" id="L314">            System.out.println(&quot;🔄 Room changed:&quot;);</span>
-<span class="pc bpc" id="L315" title="1 of 2 branches missed.">            System.out.println(&quot;   Old Room: &quot; + (booking.getRoom() != null ? booking.getRoom().getRoomID() : &quot;NULL&quot;));</span>
-<span class="fc" id="L316">            System.out.println(&quot;   New Room: &quot; + newRoom.getRoomID());</span>
+        // ✅ Simpan data LAMA untuk hitung refund/extra pay
+<span class="fc" id="L333">        int oldTotalPrice = booking.getTotalPrice();</span>
+<span class="fc" id="L334">        int oldStatus = booking.getStatus();</span>
+        
+<span class="fc" id="L336">        System.out.println(&quot;📝 Updating booking:&quot;);</span>
+<span class="fc" id="L337">        System.out.println(&quot;   Booking ID: &quot; + bookingID);</span>
+<span class="fc" id="L338">        System.out.println(&quot;   Old Status: &quot; + oldStatus);</span>
+<span class="fc" id="L339">        System.out.println(&quot;   Old Total Price: Rp &quot; + oldTotalPrice);</span>
+        
+        // ✅ Validate dates
+<span class="fc bfc" id="L342" title="All 2 branches covered.">        if (dto.getCheckOutDate().isBefore(dto.getCheckInDate()) ||</span>
+<span class="pc bpc" id="L343" title="1 of 2 branches missed.">            dto.getCheckOutDate().isEqual(dto.getCheckInDate())) {</span>
+<span class="fc" id="L344">            throw new RuntimeException(&quot;Check-out date must be at least 1 day after check-in date&quot;);</span>
         }
-    } else {
-<span class="fc" id="L319">        newRoom = booking.getRoom();</span>
-    }
-    
-<span class="pc bpc" id="L322" title="1 of 2 branches missed.">    if (newRoom == null) {</span>
-<span class="nc" id="L323">        throw new RuntimeException(&quot;Room is required for booking&quot;);</span>
-    }
-    
-    // ✅ Calculate NEW total price
-<span class="fc" id="L327">    int basePrice = newRoom.getRoomType().getPrice();</span>
-<span class="pc bpc" id="L328" title="1 of 4 branches missed.">    int breakfastPrice = (dto.getIsBreakfast() != null &amp;&amp; dto.getIsBreakfast()) ? 50000 : 0;</span>
-<span class="fc" id="L329">    int newTotalPrice = (int) ((basePrice + breakfastPrice) * totalDays);</span>
-    
-<span class="fc" id="L331">    System.out.println(&quot;💰 Price calculation:&quot;);</span>
-<span class="fc" id="L332">    System.out.println(&quot;   Base Price: Rp &quot; + basePrice + &quot; per night&quot;);</span>
-<span class="fc" id="L333">    System.out.println(&quot;   Breakfast: Rp &quot; + breakfastPrice + &quot; per night&quot;);</span>
-<span class="fc" id="L334">    System.out.println(&quot;   Total Days: &quot; + totalDays + &quot; nights&quot;);</span>
-<span class="fc" id="L335">    System.out.println(&quot;   New Total Price: Rp &quot; + newTotalPrice);</span>
-    
-    // ✅ FIX: Auto-calculate refund/extra pay berdasarkan selisih harga
-<span class="fc" id="L338">    int newStatus = oldStatus;</span>
-<span class="fc" id="L339">    int newExtraPay = 0;</span>
-<span class="fc" id="L340">    int newRefund = 0;</span>
-    
-    // ✅ HANYA hitung refund/extra pay jika booking sudah pernah dibayar (status 1)
-<span class="fc bfc" id="L343" title="All 2 branches covered.">    if (oldStatus == 1) {</span>
-<span class="fc" id="L344">        int priceDifference = newTotalPrice - oldTotalPrice;</span>
         
-<span class="fc bfc" id="L346" title="All 2 branches covered.">        if (priceDifference &gt; 0) {</span>
-            // ✅ Harga NAIK → Extra Pay
-<span class="fc" id="L348">            newExtraPay = priceDifference;</span>
-<span class="fc" id="L349">            newStatus = 0; // Status berubah ke &quot;Waiting for Payment&quot;</span>
+        // ✅ Normalize dates: untuk perhitungan (00:00) dan untuk storage (14:00 &amp; 12:00)
+<span class="fc" id="L348">        LocalDateTime[] normalizedDates = normalizeBookingDates(dto.getCheckInDate(), dto.getCheckOutDate());</span>
+<span class="fc" id="L349">        LocalDateTime checkInForCalculation = normalizedDates[0];</span>
+<span class="fc" id="L350">        LocalDateTime checkOutForCalculation = normalizedDates[1];</span>
+<span class="fc" id="L351">        LocalDateTime checkInForStorage = normalizedDates[2];</span>
+<span class="fc" id="L352">        LocalDateTime checkOutForStorage = normalizedDates[3];</span>
+        
+        // ✅ FIX: Hitung selisih hari dengan benar menggunakan tanggal dengan jam 00:00:00
+<span class="fc" id="L355">        long totalDays = java.time.temporal.ChronoUnit.DAYS.between(</span>
+<span class="fc" id="L356">            checkInForCalculation.toLocalDate(), </span>
+<span class="fc" id="L357">            checkOutForCalculation.toLocalDate()</span>
+        );
+        
+<span class="pc bpc" id="L360" title="1 of 2 branches missed.">        if (totalDays &lt; 1) {</span>
+<span class="nc" id="L361">            totalDays = 1;</span>
+        }
+        
+<span class="fc" id="L364">        System.out.println(&quot;📅 Calculating booking duration:&quot;);</span>
+<span class="fc" id="L365">        System.out.println(&quot;   Check-in (for calculation): &quot; + checkInForCalculation);</span>
+<span class="fc" id="L366">        System.out.println(&quot;   Check-out (for calculation): &quot; + checkOutForCalculation);</span>
+<span class="fc" id="L367">        System.out.println(&quot;   Total Days: &quot; + totalDays);</span>
+<span class="fc" id="L368">        System.out.println(&quot;   Check-in (for storage): &quot; + checkInForStorage);</span>
+<span class="fc" id="L369">        System.out.println(&quot;   Check-out (for storage): &quot; + checkOutForStorage);</span>
+        
+        // ✅ Get Room (baru atau lama)
+<span class="fc" id="L372">        Room newRoom = null;</span>
+<span class="fc" id="L373">        boolean roomChanged = false;</span>
+        
+<span class="pc bpc" id="L375" title="1 of 4 branches missed.">        if (dto.getRoomID() != null &amp;&amp; !dto.getRoomID().isEmpty()) {</span>
+<span class="fc" id="L376">            newRoom = roomRepository.findById(dto.getRoomID())</span>
+<span class="fc" id="L377">                    .orElseThrow(() -&gt; new RuntimeException(&quot;Room not found with id: &quot; + dto.getRoomID()));</span>
             
-<span class="fc" id="L351">            System.out.println(&quot;📈 Price increased:&quot;);</span>
-<span class="fc" id="L352">            System.out.println(&quot;   Difference: +Rp &quot; + priceDifference);</span>
-<span class="fc" id="L353">            System.out.println(&quot;   Extra Pay: Rp &quot; + newExtraPay);</span>
-<span class="fc" id="L354">            System.out.println(&quot;   Status changed: 1 → 0 (Waiting for Payment)&quot;);</span>
+<span class="pc bpc" id="L379" title="1 of 4 branches missed.">            if (booking.getRoom() == null || !booking.getRoom().getRoomID().equals(dto.getRoomID())) {</span>
+<span class="fc" id="L380">                roomChanged = true;</span>
+<span class="fc" id="L381">                System.out.println(&quot;🔄 Room changed:&quot;);</span>
+<span class="pc bpc" id="L382" title="1 of 2 branches missed.">                System.out.println(&quot;   Old Room: &quot; + (booking.getRoom() != null ? booking.getRoom().getRoomID() : &quot;NULL&quot;));</span>
+<span class="fc" id="L383">                System.out.println(&quot;   New Room: &quot; + newRoom.getRoomID());</span>
+            }
+        } else {
+<span class="fc" id="L386">            newRoom = booking.getRoom();</span>
+        }
+        
+<span class="pc bpc" id="L389" title="1 of 2 branches missed.">        if (newRoom == null) {</span>
+<span class="nc" id="L390">            throw new RuntimeException(&quot;Room is required for booking&quot;);</span>
+        }
+        
+        // ✅ FIX: Calculate NEW total price dengan long untuk menghindari overflow
+<span class="fc" id="L394">        long basePrice = newRoom.getRoomType().getPrice();</span>
+<span class="pc bpc" id="L395" title="1 of 4 branches missed.">        long breakfastPrice = (dto.getIsBreakfast() != null &amp;&amp; dto.getIsBreakfast()) ? 50000L : 0L;</span>
+<span class="fc" id="L396">        long newTotalPriceLong = (basePrice + breakfastPrice) * totalDays;</span>
+        
+        // ✅ Validasi agar tidak melebihi max int
+<span class="pc bpc" id="L399" title="1 of 2 branches missed.">        if (newTotalPriceLong &gt; Integer.MAX_VALUE) {</span>
+<span class="nc" id="L400">            throw new RuntimeException(&quot;Total price exceeds maximum value. Please reduce booking duration.&quot;);</span>
+        }
+        
+<span class="fc" id="L403">        int newTotalPrice = (int) newTotalPriceLong;</span>
+        
+<span class="fc" id="L405">        System.out.println(&quot;💰 Price calculation:&quot;);</span>
+<span class="fc" id="L406">        System.out.println(&quot;   Base Price: Rp &quot; + basePrice + &quot; per night&quot;);</span>
+<span class="fc" id="L407">        System.out.println(&quot;   Breakfast: Rp &quot; + breakfastPrice + &quot; per night&quot;);</span>
+<span class="fc" id="L408">        System.out.println(&quot;   Total Days: &quot; + totalDays + &quot; nights&quot;);</span>
+<span class="fc" id="L409">        System.out.println(&quot;   New Total Price: Rp &quot; + newTotalPrice);</span>
+        
+        // ✅ FIX: Auto-calculate refund/extra pay berdasarkan selisih harga
+<span class="fc" id="L412">        int newStatus = oldStatus;</span>
+<span class="fc" id="L413">        int newExtraPay = 0;</span>
+<span class="fc" id="L414">        int newRefund = 0;</span>
+        
+        // ✅ HANYA hitung refund/extra pay jika booking sudah pernah dibayar (status 1)
+<span class="fc bfc" id="L417" title="All 2 branches covered.">        if (oldStatus == 1) {</span>
+<span class="fc" id="L418">            int priceDifference = newTotalPrice - oldTotalPrice;</span>
             
-<span class="fc bfc" id="L356" title="All 2 branches covered.">        } else if (priceDifference &lt; 0) {</span>
-            // ✅ Harga TURUN → Refund
-<span class="fc" id="L358">            newRefund = Math.abs(priceDifference); // Selisih harga (positif)</span>
-<span class="fc" id="L359">            newStatus = 3; // Status berubah ke &quot;Request Refund&quot;</span>
+<span class="fc bfc" id="L420" title="All 2 branches covered.">            if (priceDifference &gt; 0) {</span>
+                // ✅ Harga NAIK → Extra Pay
+<span class="fc" id="L422">                newExtraPay = priceDifference;</span>
+<span class="fc" id="L423">                newStatus = 0; // Status berubah ke &quot;Waiting for Payment&quot;</span>
+                
+<span class="fc" id="L425">                System.out.println(&quot;📈 Price increased:&quot;);</span>
+<span class="fc" id="L426">                System.out.println(&quot;   Difference: +Rp &quot; + priceDifference);</span>
+<span class="fc" id="L427">                System.out.println(&quot;   Extra Pay: Rp &quot; + newExtraPay);</span>
+<span class="fc" id="L428">                System.out.println(&quot;   Status changed: 1 → 0 (Waiting for Payment)&quot;);</span>
+                
+<span class="fc bfc" id="L430" title="All 2 branches covered.">            } else if (priceDifference &lt; 0) {</span>
+                // ✅ Harga TURUN → Refund
+<span class="fc" id="L432">                newRefund = Math.abs(priceDifference); // Selisih harga (positif)</span>
+<span class="fc" id="L433">                newStatus = 3; // Status berubah ke &quot;Request Refund&quot;</span>
+                
+<span class="fc" id="L435">                System.out.println(&quot;📉 Price decreased:&quot;);</span>
+<span class="fc" id="L436">                System.out.println(&quot;   Difference: -Rp &quot; + Math.abs(priceDifference));</span>
+<span class="fc" id="L437">                System.out.println(&quot;   Refund: Rp &quot; + newRefund);</span>
+<span class="fc" id="L438">                System.out.println(&quot;   Status changed: 1 → 3 (Request Refund)&quot;);</span>
+<span class="fc" id="L439">                System.out.println(&quot;   ⚠️ Income NOT changed yet (Rp &quot; + oldTotalPrice + &quot; still in income)&quot;);</span>
+                
+            } else {
+                // ✅ Harga SAMA
+<span class="fc" id="L443">                System.out.println(&quot;   Price unchanged, no extra pay or refund&quot;);</span>
+            }
             
-<span class="fc" id="L361">            System.out.println(&quot;📉 Price decreased:&quot;);</span>
-<span class="fc" id="L362">            System.out.println(&quot;   Difference: -Rp &quot; + Math.abs(priceDifference));</span>
-<span class="fc" id="L363">            System.out.println(&quot;   Refund: Rp &quot; + newRefund);</span>
-<span class="fc" id="L364">            System.out.println(&quot;   Status changed: 1 → 3 (Request Refund)&quot;);</span>
-<span class="fc" id="L365">            System.out.println(&quot;   ⚠️ Income NOT changed yet (Rp &quot; + oldTotalPrice + &quot; still in income)&quot;);</span>
+<span class="fc bfc" id="L446" title="All 2 branches covered.">        } else if (oldStatus == 0) {</span>
+            // ✅ Status 0: Tetap status 0, keep extra pay yang lama
+<span class="fc" id="L448">            newExtraPay = booking.getExtraPay();</span>
+<span class="fc" id="L449">            System.out.println(&quot;   Status 0: Keep existing extra pay (Rp &quot; + newExtraPay + &quot;)&quot;);</span>
+            
+<span class="pc bpc" id="L451" title="1 of 2 branches missed.">        } else if (oldStatus == 3) {</span>
+            // ✅ Status 3: Tetap status 3, keep refund yang lama
+<span class="fc" id="L453">            newRefund = booking.getRefund();</span>
+<span class="fc" id="L454">            newStatus = 3;</span>
+<span class="fc" id="L455">            System.out.println(&quot;   Status 3: Keep existing refund (Rp &quot; + newRefund + &quot;)&quot;);</span>
+        }
+        
+        // ✅ Jika room berubah, buat booking BARU dengan ID baru
+<span class="fc bfc" id="L459" title="All 2 branches covered.">        if (roomChanged) {</span>
+<span class="fc" id="L460">            LocalDateTime createdDate = booking.getCreatedDate();</span>
+<span class="fc" id="L461">            DateTimeFormatter formatter = DateTimeFormatter.ofPattern(&quot;yyyy-MM-dd-HH:mm:ss&quot;);</span>
+<span class="fc" id="L462">            String datetime = createdDate.format(formatter);</span>
+            
+<span class="fc" id="L464">            String[] parts = newRoom.getRoomID().split(&quot;-&quot;);</span>
+<span class="fc" id="L465">            String propertyCode = parts[parts.length - 2];</span>
+<span class="fc" id="L466">            String roomNumber = parts[parts.length - 1];</span>
+<span class="fc" id="L467">            String newBookingID = String.format(&quot;BOOK-%s-%s-%s&quot;, propertyCode, roomNumber, datetime);</span>
+            
+<span class="fc" id="L469">            System.out.println(&quot;🆔 Creating new booking with new room:&quot;);</span>
+<span class="fc" id="L470">            System.out.println(&quot;   New Booking ID: &quot; + newBookingID);</span>
+            
+<span class="fc" id="L472">            Booking newBooking = Booking.builder()</span>
+<span class="fc" id="L473">                    .bookingID(newBookingID)</span>
+<span class="fc" id="L474">                    .checkInDate(checkInForStorage)  // ✅ Gunakan checkInForStorage (jam 14:00)</span>
+<span class="fc" id="L475">                    .checkOutDate(checkOutForStorage)  // ✅ Gunakan checkOutForStorage (jam 12:00)</span>
+<span class="fc" id="L476">                    .totalDays((int) totalDays)</span>
+<span class="fc" id="L477">                    .totalPrice(newTotalPrice)</span>
+<span class="fc" id="L478">                    .status(newStatus)</span>
+<span class="fc" id="L479">                    .customerID(booking.getCustomerID())</span>
+<span class="fc" id="L480">                    .customerName(dto.getCustomerName())</span>
+<span class="fc" id="L481">                    .customerEmail(dto.getCustomerEmail())</span>
+<span class="fc" id="L482">                    .customerPhone(dto.getCustomerPhone())</span>
+<span class="pc bpc" id="L483" title="1 of 2 branches missed.">                    .isBreakfast(dto.getIsBreakfast() != null ? dto.getIsBreakfast() : false)</span>
+<span class="fc" id="L484">                    .capacity(dto.getCapacity())</span>
+<span class="fc" id="L485">                    .refund(newRefund) // ✅ Set refund otomatis</span>
+<span class="fc" id="L486">                    .extraPay(newExtraPay) // ✅ Set extra pay otomatis</span>
+<span class="fc" id="L487">                    .room(newRoom)</span>
+<span class="fc" id="L488">                    .createdDate(createdDate) // ✅ Keep created date lama</span>
+<span class="fc" id="L489">                    .updatedDate(LocalDateTime.now())</span>
+<span class="fc" id="L490">                    .build();</span>
+            
+<span class="fc" id="L492">            bookingRepository.deleteById(bookingID);</span>
+<span class="fc" id="L493">            Booking savedBooking = bookingRepository.save(newBooking);</span>
+            
+<span class="fc" id="L495">            System.out.println(&quot;✅ New booking created:&quot;);</span>
+<span class="fc" id="L496">            System.out.println(&quot;   Booking ID: &quot; + savedBooking.getBookingID());</span>
+<span class="fc" id="L497">            System.out.println(&quot;   Status: &quot; + newStatus);</span>
+<span class="fc" id="L498">            System.out.println(&quot;   Extra Pay: Rp &quot; + newExtraPay);</span>
+<span class="fc" id="L499">            System.out.println(&quot;   Refund: Rp &quot; + newRefund);</span>
+            
+<span class="fc" id="L501">            return convertToResponseDTO(savedBooking);</span>
             
         } else {
-            // ✅ Harga SAMA
-<span class="fc" id="L369">            System.out.println(&quot;   Price unchanged, no extra pay or refund&quot;);</span>
+            // ✅ Room SAMA, update existing booking
+<span class="fc" id="L505">            booking.setCheckInDate(checkInForStorage);  // ✅ Gunakan checkInForStorage (jam 14:00)</span>
+<span class="fc" id="L506">            booking.setCheckOutDate(checkOutForStorage);  // ✅ Gunakan checkOutForStorage (jam 12:00)</span>
+<span class="fc" id="L507">            booking.setTotalDays((int) totalDays);</span>
+<span class="fc" id="L508">            booking.setTotalPrice(newTotalPrice);</span>
+<span class="fc" id="L509">            booking.setCustomerName(dto.getCustomerName());</span>
+<span class="fc" id="L510">            booking.setCustomerEmail(dto.getCustomerEmail());</span>
+<span class="fc" id="L511">            booking.setCustomerPhone(dto.getCustomerPhone());</span>
+<span class="fc" id="L512">            booking.setCapacity(dto.getCapacity());</span>
+<span class="pc bpc" id="L513" title="1 of 2 branches missed.">            booking.setBreakfast(dto.getIsBreakfast() != null ? dto.getIsBreakfast() : false);</span>
+<span class="fc" id="L514">            booking.setStatus(newStatus); // ✅ Update status</span>
+<span class="fc" id="L515">            booking.setExtraPay(newExtraPay); // ✅ Set extra pay otomatis</span>
+<span class="fc" id="L516">            booking.setRefund(newRefund); // ✅ Set refund otomatis</span>
+<span class="fc" id="L517">            booking.setUpdatedDate(LocalDateTime.now());</span>
+            
+<span class="fc" id="L519">            Booking updatedBooking = bookingRepository.save(booking);</span>
+            
+<span class="fc" id="L521">            System.out.println(&quot;✅ Booking updated:&quot;);</span>
+<span class="fc" id="L522">            System.out.println(&quot;   Booking ID: &quot; + updatedBooking.getBookingID());</span>
+<span class="fc" id="L523">            System.out.println(&quot;   Status: &quot; + newStatus);</span>
+<span class="fc" id="L524">            System.out.println(&quot;   Extra Pay: Rp &quot; + newExtraPay);</span>
+<span class="fc" id="L525">            System.out.println(&quot;   Refund: Rp &quot; + newRefund);</span>
+            
+<span class="fc" id="L527">            return convertToResponseDTO(updatedBooking);</span>
         }
-        
-<span class="fc bfc" id="L372" title="All 2 branches covered.">    } else if (oldStatus == 0) {</span>
-        // ✅ Status 0: Tetap status 0, keep extra pay yang lama
-<span class="fc" id="L374">        newExtraPay = booking.getExtraPay();</span>
-<span class="fc" id="L375">        System.out.println(&quot;   Status 0: Keep existing extra pay (Rp &quot; + newExtraPay + &quot;)&quot;);</span>
-        
-<span class="pc bpc" id="L377" title="1 of 2 branches missed.">    } else if (oldStatus == 3) {</span>
-        // ✅ Status 3: Tetap status 3, keep refund yang lama
-<span class="fc" id="L379">        newRefund = booking.getRefund();</span>
-<span class="fc" id="L380">        newStatus = 3;</span>
-<span class="fc" id="L381">        System.out.println(&quot;   Status 3: Keep existing refund (Rp &quot; + newRefund + &quot;)&quot;);</span>
     }
-    
-    // ✅ Jika room berubah, buat booking BARU dengan ID baru
-<span class="fc bfc" id="L385" title="All 2 branches covered.">    if (roomChanged) {</span>
-<span class="fc" id="L386">        LocalDateTime createdDate = booking.getCreatedDate();</span>
-<span class="fc" id="L387">        DateTimeFormatter formatter = DateTimeFormatter.ofPattern(&quot;yyyy-MM-dd-HH:mm:ss&quot;);</span>
-<span class="fc" id="L388">        String datetime = createdDate.format(formatter);</span>
-        
-<span class="fc" id="L390">        String[] parts = newRoom.getRoomID().split(&quot;-&quot;);</span>
-<span class="fc" id="L391">        String propertyCode = parts[parts.length - 2];</span>
-<span class="fc" id="L392">        String roomNumber = parts[parts.length - 1];</span>
-<span class="fc" id="L393">        String newBookingID = String.format(&quot;BOOK-%s-%s-%s&quot;, propertyCode, roomNumber, datetime);</span>
-        
-<span class="fc" id="L395">        System.out.println(&quot;🆔 Creating new booking with new room:&quot;);</span>
-<span class="fc" id="L396">        System.out.println(&quot;   New Booking ID: &quot; + newBookingID);</span>
-        
-<span class="fc" id="L398">        Booking newBooking = Booking.builder()</span>
-<span class="fc" id="L399">                .bookingID(newBookingID)</span>
-<span class="fc" id="L400">                .checkInDate(dto.getCheckInDate())</span>
-<span class="fc" id="L401">                .checkOutDate(dto.getCheckOutDate())</span>
-<span class="fc" id="L402">                .totalDays((int) totalDays)</span>
-<span class="fc" id="L403">                .totalPrice(newTotalPrice)</span>
-<span class="fc" id="L404">                .status(newStatus)</span>
-<span class="fc" id="L405">                .customerID(booking.getCustomerID())</span>
-<span class="fc" id="L406">                .customerName(dto.getCustomerName())</span>
-<span class="fc" id="L407">                .customerEmail(dto.getCustomerEmail())</span>
-<span class="fc" id="L408">                .customerPhone(dto.getCustomerPhone())</span>
-<span class="pc bpc" id="L409" title="1 of 2 branches missed.">                .isBreakfast(dto.getIsBreakfast() != null ? dto.getIsBreakfast() : false)</span>
-<span class="fc" id="L410">                .capacity(dto.getCapacity())</span>
-<span class="fc" id="L411">                .refund(newRefund) // ✅ Set refund otomatis</span>
-<span class="fc" id="L412">                .extraPay(newExtraPay) // ✅ Set extra pay otomatis</span>
-<span class="fc" id="L413">                .room(newRoom)</span>
-<span class="fc" id="L414">                .createdDate(createdDate) // ✅ Keep created date lama</span>
-<span class="fc" id="L415">                .updatedDate(LocalDateTime.now())</span>
-<span class="fc" id="L416">                .build();</span>
-        
-<span class="fc" id="L418">        bookingRepository.deleteById(bookingID);</span>
-<span class="fc" id="L419">        Booking savedBooking = bookingRepository.save(newBooking);</span>
-        
-<span class="fc" id="L421">        System.out.println(&quot;✅ New booking created:&quot;);</span>
-<span class="fc" id="L422">        System.out.println(&quot;   Booking ID: &quot; + savedBooking.getBookingID());</span>
-<span class="fc" id="L423">        System.out.println(&quot;   Status: &quot; + newStatus);</span>
-<span class="fc" id="L424">        System.out.println(&quot;   Extra Pay: Rp &quot; + newExtraPay);</span>
-<span class="fc" id="L425">        System.out.println(&quot;   Refund: Rp &quot; + newRefund);</span>
-        
-<span class="fc" id="L427">        return convertToResponseDTO(savedBooking);</span>
-        
-    } else {
-        // ✅ Room SAMA, update existing booking
-<span class="fc" id="L431">        booking.setCheckInDate(dto.getCheckInDate());</span>
-<span class="fc" id="L432">        booking.setCheckOutDate(dto.getCheckOutDate());</span>
-<span class="fc" id="L433">        booking.setTotalDays((int) totalDays);</span>
-<span class="fc" id="L434">        booking.setTotalPrice(newTotalPrice);</span>
-<span class="fc" id="L435">        booking.setCustomerName(dto.getCustomerName());</span>
-<span class="fc" id="L436">        booking.setCustomerEmail(dto.getCustomerEmail());</span>
-<span class="fc" id="L437">        booking.setCustomerPhone(dto.getCustomerPhone());</span>
-<span class="fc" id="L438">        booking.setCapacity(dto.getCapacity());</span>
-<span class="pc bpc" id="L439" title="1 of 2 branches missed.">        booking.setBreakfast(dto.getIsBreakfast() != null ? dto.getIsBreakfast() : false);</span>
-<span class="fc" id="L440">        booking.setStatus(newStatus); // ✅ Update status</span>
-<span class="fc" id="L441">        booking.setExtraPay(newExtraPay); // ✅ Set extra pay otomatis</span>
-<span class="fc" id="L442">        booking.setRefund(newRefund); // ✅ Set refund otomatis</span>
-<span class="fc" id="L443">        booking.setUpdatedDate(LocalDateTime.now());</span>
-        
-<span class="fc" id="L445">        Booking updatedBooking = bookingRepository.save(booking);</span>
-        
-<span class="fc" id="L447">        System.out.println(&quot;✅ Booking updated:&quot;);</span>
-<span class="fc" id="L448">        System.out.println(&quot;   Booking ID: &quot; + updatedBooking.getBookingID());</span>
-<span class="fc" id="L449">        System.out.println(&quot;   Status: &quot; + newStatus);</span>
-<span class="fc" id="L450">        System.out.println(&quot;   Extra Pay: Rp &quot; + newExtraPay);</span>
-<span class="fc" id="L451">        System.out.println(&quot;   Refund: Rp &quot; + newRefund);</span>
-        
-<span class="fc" id="L453">        return convertToResponseDTO(updatedBooking);</span>
-    }
-}
 
     @Override
     public BookingResponseDTO updateBookingStatus(String bookingID, UpdateBookingStatusRequestDTO dto) {
-<span class="fc" id="L459">        Booking booking = bookingRepository.findById(bookingID)</span>
-<span class="fc" id="L460">                .orElseThrow(() -&gt; new RuntimeException(&quot;Booking not found with id: &quot; + bookingID));</span>
+<span class="fc" id="L533">        Booking booking = bookingRepository.findById(bookingID)</span>
+<span class="fc" id="L534">                .orElseThrow(() -&gt; new RuntimeException(&quot;Booking not found with id: &quot; + bookingID));</span>
         
         // Update status
-<span class="fc" id="L463">        booking.setStatus(dto.getStatus());</span>
-<span class="fc" id="L464">        booking.setUpdatedDate(LocalDateTime.now());</span>
+<span class="fc" id="L537">        booking.setStatus(dto.getStatus());</span>
+<span class="fc" id="L538">        booking.setUpdatedDate(LocalDateTime.now());</span>
         
-<span class="fc bfc" id="L466" title="All 2 branches covered.">        if (dto.getRefund() != null) {</span>
-<span class="fc" id="L467">            booking.setRefund(dto.getRefund());</span>
+<span class="fc bfc" id="L540" title="All 2 branches covered.">        if (dto.getRefund() != null) {</span>
+<span class="fc" id="L541">            booking.setRefund(dto.getRefund());</span>
         }
-<span class="fc bfc" id="L469" title="All 2 branches covered.">        if (dto.getExtraPay() != null) {</span>
-<span class="fc" id="L470">            booking.setExtraPay(dto.getExtraPay());</span>
+<span class="fc bfc" id="L543" title="All 2 branches covered.">        if (dto.getExtraPay() != null) {</span>
+<span class="fc" id="L544">            booking.setExtraPay(dto.getExtraPay());</span>
         }
         
-<span class="fc" id="L473">        Booking updatedBooking = bookingRepository.save(booking);</span>
-<span class="fc" id="L474">        return convertToResponseDTO(updatedBooking);</span>
+<span class="fc" id="L547">        Booking updatedBooking = bookingRepository.save(booking);</span>
+<span class="fc" id="L548">        return convertToResponseDTO(updatedBooking);</span>
     }
 
     @Override
     public void deleteBooking(String bookingID) {
-<span class="fc bfc" id="L479" title="All 2 branches covered.">        if (!bookingRepository.existsById(bookingID)) {</span>
-<span class="fc" id="L480">            throw new RuntimeException(&quot;Booking not found with id: &quot; + bookingID);</span>
+<span class="fc bfc" id="L553" title="All 2 branches covered.">        if (!bookingRepository.existsById(bookingID)) {</span>
+<span class="fc" id="L554">            throw new RuntimeException(&quot;Booking not found with id: &quot; + bookingID);</span>
         }
-<span class="fc" id="L482">        bookingRepository.deleteById(bookingID);</span>
-<span class="fc" id="L483">    }</span>
+<span class="fc" id="L556">        bookingRepository.deleteById(bookingID);</span>
+<span class="fc" id="L557">    }</span>
 
     @Override
-@Transactional
-public void autoUpdateBookingStatuses() {
-<span class="fc" id="L488">    LocalDateTime now = LocalDateTime.now();</span>
-    
-<span class="fc" id="L490">    System.out.println(&quot;🔄 Auto-updating booking statuses...&quot;);</span>
-<span class="fc" id="L491">    System.out.println(&quot;   Current Time: &quot; + now);</span>
-    
-    // ✅ Ambil semua bookings
-<span class="fc" id="L494">    List&lt;Booking&gt; allBookings = bookingRepository.findAll();</span>
-    
-<span class="fc" id="L496">    int updatedCount = 0;</span>
-<span class="fc" id="L497">    int doneCount = 0;</span>
-<span class="fc" id="L498">    int cancelledCount = 0;</span>
-    
-<span class="fc bfc" id="L500" title="All 2 branches covered.">    for (Booking booking : allBookings) {</span>
-<span class="fc" id="L501">        boolean wasUpdated = false;</span>
+    @Transactional
+    public void autoUpdateBookingStatuses() {
+<span class="fc" id="L562">        LocalDateTime now = LocalDateTime.now();</span>
         
-        // ✅ RULE 1: Status 1 (Payment Confirmed) → 4 (Done) jika sudah check-in
-<span class="fc bfc" id="L504" title="All 4 branches covered.">        if (booking.getStatus() == 1 &amp;&amp; booking.getCheckInDate().isBefore(now)) {</span>
-<span class="fc" id="L505">            System.out.println(&quot;📅 Booking &quot; + booking.getBookingID() + &quot;: Status 1 → 4 (Done)&quot;);</span>
-<span class="fc" id="L506">            System.out.println(&quot;   Check-in: &quot; + booking.getCheckInDate() + &quot; &lt; Now: &quot; + now);</span>
-            
-<span class="fc" id="L508">            booking.setStatus(4); // Done</span>
-<span class="fc" id="L509">            booking.setUpdatedDate(now);</span>
-<span class="fc" id="L510">            wasUpdated = true;</span>
-<span class="fc" id="L511">            doneCount++;</span>
-        }
+<span class="fc" id="L564">        System.out.println(&quot;🔄 Auto-updating booking statuses...&quot;);</span>
+<span class="fc" id="L565">        System.out.println(&quot;   Current Time: &quot; + now);</span>
         
-        // ✅ RULE 2: Status 0 (Waiting for Payment) → 2 (Cancelled) jika lewat check-in
-<span class="pc bpc" id="L515" title="1 of 4 branches missed.">        else if (booking.getStatus() == 0 &amp;&amp; booking.getCheckInDate().isBefore(now)) {</span>
-<span class="fc" id="L516">            System.out.println(&quot; Booking &quot; + booking.getBookingID() + &quot;: Status 0 → 2 (Cancelled)&quot;);</span>
-<span class="fc" id="L517">            System.out.println(&quot;   Check-in: &quot; + booking.getCheckInDate() + &quot; &lt; Now: &quot; + now);</span>
+        // ✅ Ambil semua bookings
+<span class="fc" id="L568">        List&lt;Booking&gt; allBookings = bookingRepository.findAll();</span>
+        
+<span class="fc" id="L570">        int updatedCount = 0;</span>
+<span class="fc" id="L571">        int doneCount = 0;</span>
+<span class="fc" id="L572">        int cancelledCount = 0;</span>
+        
+<span class="fc bfc" id="L574" title="All 2 branches covered.">        for (Booking booking : allBookings) {</span>
+<span class="fc" id="L575">            boolean wasUpdated = false;</span>
             
-<span class="fc" id="L519">            booking.setStatus(2); // Cancelled</span>
-<span class="fc" id="L520">            booking.setUpdatedDate(now);</span>
-            
-            // ✅ FIX: Kurangi income sesuai aturan cancel (sama seperti manual cancel)
-<span class="fc bfc" id="L523" title="All 2 branches covered.">            if (booking.getExtraPay() &gt; 0) {</span>
-                // Ada extra pay yang sudah dibayar → kurangi extra pay dari income
-<span class="fc" id="L525">                System.out.println(&quot;  Reducing income by extra pay: Rp &quot; + booking.getExtraPay());</span>
-<span class="fc" id="L526">                updatePropertyIncome(booking, -booking.getExtraPay());</span>
-            } else {
-                // Tidak ada extra pay → tidak ada income yang dikurangi
-<span class="fc" id="L529">                System.out.println(&quot; No income change (no payment yet)&quot;);</span>
+            // ✅ RULE 1: Status 1 (Payment Confirmed) → 4 (Done) jika sudah check-in
+<span class="fc bfc" id="L578" title="All 4 branches covered.">            if (booking.getStatus() == 1 &amp;&amp; booking.getCheckInDate().isBefore(now)) {</span>
+<span class="fc" id="L579">                System.out.println(&quot;📅 Booking &quot; + booking.getBookingID() + &quot;: Status 1 → 4 (Done)&quot;);</span>
+<span class="fc" id="L580">                System.out.println(&quot;   Check-in: &quot; + booking.getCheckInDate() + &quot; &lt; Now: &quot; + now);</span>
+                
+<span class="fc" id="L582">                booking.setStatus(4); // Done</span>
+<span class="fc" id="L583">                booking.setUpdatedDate(now);</span>
+<span class="fc" id="L584">                wasUpdated = true;</span>
+<span class="fc" id="L585">                doneCount++;</span>
             }
             
-<span class="fc" id="L532">            wasUpdated = true;</span>
-<span class="fc" id="L533">            cancelledCount++;</span>
-        }
-        
-        // ✅ RULE 3: Status 3 (Request Refund) → 4 (Done) jika lewat check-in
-        //    DAN kurangi refund dari property income
-<span class="pc bpc" id="L538" title="1 of 4 branches missed.">        else if (booking.getStatus() == 3 &amp;&amp; booking.getCheckInDate().isBefore(now)) {</span>
-<span class="fc" id="L539">            System.out.println(&quot;💸 Booking &quot; + booking.getBookingID() + &quot;: Status 3 → 4 (Done with refund)&quot;);</span>
-<span class="fc" id="L540">            System.out.println(&quot;   Check-in: &quot; + booking.getCheckInDate() + &quot; &lt; Now: &quot; + now);</span>
-<span class="fc" id="L541">            System.out.println(&quot;   Refund Amount: Rp &quot; + booking.getRefund());</span>
-            
-<span class="fc" id="L543">            booking.setStatus(4); // Done</span>
-<span class="fc" id="L544">            booking.setUpdatedDate(now);</span>
-            
-            // ✅ Kurangi property income sejumlah refund
-<span class="pc bpc" id="L547" title="1 of 2 branches missed.">            if (booking.getRefund() &gt; 0) {</span>
-<span class="fc" id="L548">                System.out.println(&quot;   💰 Reducing income by refund: Rp &quot; + booking.getRefund());</span>
-<span class="fc" id="L549">                updatePropertyIncome(booking, -booking.getRefund());</span>
+            // ✅ RULE 2: Status 0 (Waiting for Payment) → 2 (Cancelled) jika lewat check-in
+<span class="pc bpc" id="L589" title="1 of 4 branches missed.">            else if (booking.getStatus() == 0 &amp;&amp; booking.getCheckInDate().isBefore(now)) {</span>
+<span class="fc" id="L590">                System.out.println(&quot;🚫 Booking &quot; + booking.getBookingID() + &quot;: Status 0 → 2 (Cancelled)&quot;);</span>
+<span class="fc" id="L591">                System.out.println(&quot;   Check-in: &quot; + booking.getCheckInDate() + &quot; &lt; Now: &quot; + now);</span>
+                
+<span class="fc" id="L593">                booking.setStatus(2); // Cancelled</span>
+<span class="fc" id="L594">                booking.setUpdatedDate(now);</span>
+                
+                // ✅ FIX: Kurangi income sesuai aturan cancel (sama seperti manual cancel)
+<span class="fc bfc" id="L597" title="All 2 branches covered.">                if (booking.getExtraPay() &gt; 0) {</span>
+                    // Ada extra pay yang sudah dibayar → kurangi totalPriceLama dari income
+<span class="fc" id="L599">                    int totalPriceLama = booking.getTotalPrice() - booking.getExtraPay();</span>
+<span class="fc" id="L600">                    System.out.println(&quot;   💰 Reducing income by total price LAMA: Rp &quot; + totalPriceLama);</span>
+<span class="fc" id="L601">                    updatePropertyIncome(booking, -totalPriceLama);</span>
+<span class="fc" id="L602">                } else {</span>
+                    // Tidak ada extra pay → tidak ada income yang dikurangi
+<span class="fc" id="L604">                    System.out.println(&quot;   ℹ️ No income change (no payment yet)&quot;);</span>
+                }
+                
+<span class="fc" id="L607">                wasUpdated = true;</span>
+<span class="fc" id="L608">                cancelledCount++;</span>
             }
             
-<span class="fc" id="L552">            wasUpdated = true;</span>
-<span class="fc" id="L553">            doneCount++;</span>
-        }
+            // ✅ RULE 3: Status 3 (Request Refund) → 2 (Cancelled) jika lewat check-in
+            //    DAN kurangi refund dari property income
+<span class="pc bpc" id="L613" title="3 of 4 branches missed.">            else if (booking.getStatus() == 3 &amp;&amp; booking.getCheckInDate().isBefore(now)) {</span>
+<span class="nc" id="L614">                System.out.println(&quot;🚫 Booking &quot; + booking.getBookingID() + &quot;: Status 3 → 2 (Cancelled with refund)&quot;);</span>
+<span class="nc" id="L615">                System.out.println(&quot;   Check-in: &quot; + booking.getCheckInDate() + &quot; &lt; Now: &quot; + now);</span>
+<span class="nc" id="L616">                System.out.println(&quot;   Refund Amount: Rp &quot; + booking.getRefund());</span>
+                
+<span class="nc" id="L618">                booking.setStatus(2); // Cancelled (bukan Done)</span>
+<span class="nc" id="L619">                booking.setUpdatedDate(now);</span>
+                
+                // ✅ Kurangi property income: total price LAMA (totalPrice + refund)
+<span class="nc" id="L622">                int totalPriceOld = booking.getTotalPrice() + booking.getRefund();</span>
+<span class="nc" id="L623">                System.out.println(&quot;   💰 Total Price OLD: Rp &quot; + totalPriceOld);</span>
+<span class="nc" id="L624">                System.out.println(&quot;   💰 Reducing income by total price OLD: Rp &quot; + totalPriceOld);</span>
+<span class="nc" id="L625">                updatePropertyIncome(booking, -totalPriceOld);</span>
+                
+<span class="nc" id="L627">                wasUpdated = true;</span>
+<span class="nc" id="L628">                cancelledCount++;</span>
+            }
+            
+            // ✅ Save booking jika ada perubahan
+<span class="fc bfc" id="L632" title="All 2 branches covered.">            if (wasUpdated) {</span>
+<span class="fc" id="L633">                bookingRepository.save(booking);</span>
+<span class="fc" id="L634">                updatedCount++;</span>
+            }
+<span class="fc" id="L636">        }</span>
         
-        // ✅ Save booking jika ada perubahan
-<span class="fc bfc" id="L557" title="All 2 branches covered.">        if (wasUpdated) {</span>
-<span class="fc" id="L558">            bookingRepository.save(booking);</span>
-<span class="fc" id="L559">            updatedCount++;</span>
-        }
-<span class="fc" id="L561">    }</span>
-    
-<span class="fc" id="L563">    System.out.println(&quot;✅ Auto-update complete:&quot;);</span>
-<span class="fc" id="L564">    System.out.println(&quot;   Total Bookings Checked: &quot; + allBookings.size());</span>
-<span class="fc" id="L565">    System.out.println(&quot;   Total Updated: &quot; + updatedCount);</span>
-<span class="fc" id="L566">    System.out.println(&quot;   Status 1 → 4 (Done): &quot; + doneCount);</span>
-<span class="fc" id="L567">    System.out.println(&quot;   Status 0 → 2 (Cancelled): &quot; + cancelledCount);</span>
-<span class="fc" id="L568">}</span>
+<span class="fc" id="L638">        System.out.println(&quot;✅ Auto-update complete:&quot;);</span>
+<span class="fc" id="L639">        System.out.println(&quot;   Total Bookings Checked: &quot; + allBookings.size());</span>
+<span class="fc" id="L640">        System.out.println(&quot;   Total Updated: &quot; + updatedCount);</span>
+<span class="fc" id="L641">        System.out.println(&quot;   Status 1 → 4 (Done): &quot; + doneCount);</span>
+<span class="fc" id="L642">        System.out.println(&quot;   Status 0/3 → 2 (Cancelled): &quot; + cancelledCount);</span>
+<span class="fc" id="L643">    }</span>
      @Override
 public BookingResponseDTO confirmPayment(String bookingID, UpdateBookingStatusRequestDTO dto) {
-<span class="fc" id="L571">    Booking booking = bookingRepository.findById(bookingID)</span>
-<span class="pc" id="L572">            .orElseThrow(() -&gt; new RuntimeException(&quot;Booking not found with id: &quot; + bookingID));</span>
+<span class="fc" id="L646">    Booking booking = bookingRepository.findById(bookingID)</span>
+<span class="pc" id="L647">            .orElseThrow(() -&gt; new RuntimeException(&quot;Booking not found with id: &quot; + bookingID));</span>
     
     // ✅ Validasi: Hanya booking dengan status 0 (Waiting for Payment) yang bisa confirm payment
-<span class="fc bfc" id="L575" title="All 2 branches covered.">    if (booking.getStatus() != 0) {</span>
-<span class="fc" id="L576">        throw new RuntimeException(&quot;Only bookings with status 'Waiting for Payment' can be paid&quot;);</span>
+<span class="fc bfc" id="L650" title="All 2 branches covered.">    if (booking.getStatus() != 0) {</span>
+<span class="fc" id="L651">        throw new RuntimeException(&quot;Only bookings with status 'Waiting for Payment' can be paid&quot;);</span>
     }
     
     // ✅ Update status menjadi 1 (Payment Confirmed)
-<span class="fc" id="L580">    booking.setStatus(1);</span>
-<span class="fc" id="L581">    booking.setUpdatedDate(LocalDateTime.now());</span>
+<span class="fc" id="L655">    booking.setStatus(1);</span>
+<span class="fc" id="L656">    booking.setUpdatedDate(LocalDateTime.now());</span>
     
     // ✅ FIX: Hitung income yang akan ditambahkan
     int incomeToAdd;
     
-<span class="fc bfc" id="L586" title="All 2 branches covered.">    if (booking.getExtraPay() &gt; 0) {</span>
+<span class="fc bfc" id="L661" title="All 2 branches covered.">    if (booking.getExtraPay() &gt; 0) {</span>
         // ✅ Kasus: Ada extra pay
         // Income sudah berisi total price LAMA (saat pertama kali bayar)
         // Sekarang HANYA tambahkan extra pay saja
-<span class="fc" id="L590">        incomeToAdd = booking.getExtraPay();</span>
-<span class="fc" id="L591">        booking.setExtraPay(0); // Reset extra pay setelah dibayar</span>
+<span class="fc" id="L665">        incomeToAdd = booking.getExtraPay();</span>
+<span class="fc" id="L666">        booking.setExtraPay(0); // Reset extra pay setelah dibayar</span>
         
-<span class="fc" id="L593">        System.out.println(&quot;💰 Payment with extra pay:&quot;);</span>
-<span class="fc" id="L594">        System.out.println(&quot;   Extra Pay: Rp &quot; + incomeToAdd);</span>
-<span class="fc" id="L595">        System.out.println(&quot;   Total Price (already in income): Rp &quot; + (booking.getTotalPrice() - incomeToAdd));</span>
+<span class="fc" id="L668">        System.out.println(&quot;💰 Payment with extra pay:&quot;);</span>
+<span class="fc" id="L669">        System.out.println(&quot;   Extra Pay: Rp &quot; + incomeToAdd);</span>
+<span class="fc" id="L670">        System.out.println(&quot;   Total Price (already in income): Rp &quot; + (booking.getTotalPrice() - incomeToAdd));</span>
         
     } else {
         // ✅ Kasus: Tidak ada extra pay (pembayaran pertama kali)
         // Tambahkan total price ke income
-<span class="fc" id="L600">        incomeToAdd = booking.getTotalPrice();</span>
+<span class="fc" id="L675">        incomeToAdd = booking.getTotalPrice();</span>
         
-<span class="fc" id="L602">        System.out.println(&quot;💰 First payment:&quot;);</span>
-<span class="fc" id="L603">        System.out.println(&quot;   Total Price: Rp &quot; + incomeToAdd);</span>
+<span class="fc" id="L677">        System.out.println(&quot;💰 First payment:&quot;);</span>
+<span class="fc" id="L678">        System.out.println(&quot;   Total Price: Rp &quot; + incomeToAdd);</span>
     }
     
     // ✅ Update property income
-<span class="fc" id="L607">    updatePropertyIncome(booking, incomeToAdd);</span>
+<span class="fc" id="L682">    updatePropertyIncome(booking, incomeToAdd);</span>
     
-<span class="fc" id="L609">    Booking updatedBooking = bookingRepository.save(booking);</span>
-<span class="fc" id="L610">    return convertToResponseDTO(updatedBooking);</span>
+<span class="fc" id="L684">    Booking updatedBooking = bookingRepository.save(booking);</span>
+<span class="fc" id="L685">    return convertToResponseDTO(updatedBooking);</span>
 }
 
     @Override
 public BookingResponseDTO cancelBooking(String bookingID, UpdateBookingStatusRequestDTO dto) {
-<span class="fc" id="L615">    Booking booking = bookingRepository.findById(bookingID)</span>
-<span class="pc" id="L616">            .orElseThrow(() -&gt; new RuntimeException(&quot;Booking not found with id: &quot; + bookingID));</span>
+<span class="fc" id="L690">    Booking booking = bookingRepository.findById(bookingID)</span>
+<span class="pc" id="L691">            .orElseThrow(() -&gt; new RuntimeException(&quot;Booking not found with id: &quot; + bookingID));</span>
     
     // ✅ Validasi: Hanya booking dengan status 0, 1, 3 yang bisa cancel
-<span class="fc bfc" id="L619" title="All 6 branches covered.">    if (booking.getStatus() != 0 &amp;&amp; booking.getStatus() != 1 &amp;&amp; booking.getStatus() != 3) {</span>
-<span class="fc" id="L620">        throw new RuntimeException(&quot;Only bookings with status 0, 1, or 3 can be cancelled&quot;);</span>
+<span class="fc bfc" id="L694" title="All 6 branches covered.">    if (booking.getStatus() != 0 &amp;&amp; booking.getStatus() != 1 &amp;&amp; booking.getStatus() != 3) {</span>
+<span class="fc" id="L695">        throw new RuntimeException(&quot;Only bookings with status 0, 1, or 3 can be cancelled&quot;);</span>
     }
     
-<span class="fc" id="L623">    int currentStatus = booking.getStatus();</span>
+<span class="fc" id="L698">    int currentStatus = booking.getStatus();</span>
     
     // ✅ Update status menjadi 2 (Cancelled)
-<span class="fc" id="L626">    booking.setStatus(2);</span>
-<span class="fc" id="L627">    booking.setUpdatedDate(LocalDateTime.now());</span>
+<span class="fc" id="L701">    booking.setStatus(2);</span>
+<span class="fc" id="L702">    booking.setUpdatedDate(LocalDateTime.now());</span>
     
-<span class="fc" id="L629">    System.out.println(&quot;🚫 Cancelling booking:&quot;);</span>
-<span class="fc" id="L630">    System.out.println(&quot;   Booking ID: &quot; + bookingID);</span>
-<span class="fc" id="L631">    System.out.println(&quot;   Current Status: &quot; + currentStatus);</span>
-<span class="fc" id="L632">    System.out.println(&quot;   Total Price: Rp &quot; + booking.getTotalPrice());</span>
-<span class="fc" id="L633">    System.out.println(&quot;   Extra Pay: Rp &quot; + booking.getExtraPay());</span>
-<span class="fc" id="L634">    System.out.println(&quot;   Refund: Rp &quot; + booking.getRefund());</span>
+<span class="fc" id="L704">    System.out.println(&quot;Cancelling booking:&quot;);</span>
+<span class="fc" id="L705">    System.out.println(&quot;   Booking ID: &quot; + bookingID);</span>
+<span class="fc" id="L706">    System.out.println(&quot;   Current Status: &quot; + currentStatus);</span>
+<span class="fc" id="L707">    System.out.println(&quot;   Total Price: Rp &quot; + booking.getTotalPrice());</span>
+<span class="fc" id="L708">    System.out.println(&quot;   Extra Pay: Rp &quot; + booking.getExtraPay());</span>
+<span class="fc" id="L709">    System.out.println(&quot;   Refund: Rp &quot; + booking.getRefund());</span>
     
     // ✅ FIX: Logic pengurangan income berdasarkan status sebelumnya
-<span class="fc bfc" id="L637" title="All 2 branches covered.">    if (currentStatus == 0) {</span>
-<span class="fc bfc" id="L638" title="All 2 branches covered.">        if (booking.getExtraPay() &gt; 0) {</span>
+<span class="fc bfc" id="L712" title="All 2 branches covered.">    if (currentStatus == 0) {</span>
+<span class="fc bfc" id="L713" title="All 2 branches covered.">        if (booking.getExtraPay() &gt; 0) {</span>
             // ✅ Status 0 dengan extra pay
-            // Income saat ini = extra pay yang sudah dibayar
-            // Cancel = kurangi extra pay saja
-<span class="fc" id="L642">            int incomeChange = -booking.getExtraPay();</span>
-<span class="fc" id="L643">            updatePropertyIncome(booking, incomeChange);</span>
+            // Income saat ini = totalPriceLama (yang sudah dibayar pertama kali)
+            // TotalPriceLama = totalPrice - extraPay
+            // Cancel = kurangi totalPriceLama = (totalPrice - extraPay)
+<span class="fc" id="L718">            int totalPriceLama = booking.getTotalPrice() - booking.getExtraPay();</span>
+<span class="fc" id="L719">            updatePropertyIncome(booking, -totalPriceLama);</span>
             
-<span class="fc" id="L645">            System.out.println(&quot;   Income change: -Rp &quot; + booking.getExtraPay() + &quot; (extra pay)&quot;);</span>
-            
-<span class="fc" id="L647">        } else {</span>
+<span class="fc" id="L721">            System.out.println(&quot;   Total Price LAMA: Rp &quot; + totalPriceLama);</span>
+<span class="fc" id="L722">            System.out.println(&quot;   Income change: -Rp &quot; + totalPriceLama + &quot; (total harga baru - extra pay)&quot;);</span>
+<span class="fc" id="L723">        } else {</span>
             // ✅ Status 0 tanpa extra pay
             // Income tidak berubah (belum ada pembayaran)
-<span class="fc" id="L650">            System.out.println(&quot;   Income change: Rp 0 (no payment yet)&quot;);</span>
+<span class="fc" id="L726">            System.out.println(&quot;   Income change: Rp 0 (no payment yet)&quot;);</span>
         }
         
-<span class="fc bfc" id="L653" title="All 2 branches covered.">    } else if (currentStatus == 1) {</span>
+<span class="fc bfc" id="L729" title="All 2 branches covered.">    } else if (currentStatus == 1) {</span>
         // ✅ Status 1 (Payment Confirmed)
         // Income saat ini = total price yang sudah dibayar
         // Cancel = kurangi total price
-<span class="fc" id="L657">        updatePropertyIncome(booking, -booking.getTotalPrice());</span>
+<span class="fc" id="L733">        updatePropertyIncome(booking, -booking.getTotalPrice());</span>
         
-<span class="fc" id="L659">        System.out.println(&quot;   Income change: -Rp &quot; + booking.getTotalPrice() + &quot; (refund full payment)&quot;);</span>
+<span class="fc" id="L735">        System.out.println(&quot;   Income change: -Rp &quot; + booking.getTotalPrice() + &quot; (refund full payment)&quot;);</span>
         
-<span class="pc bpc" id="L661" title="1 of 2 branches missed.">    } else if (currentStatus == 3) {</span>
+<span class="pc bpc" id="L737" title="1 of 2 branches missed.">    } else if (currentStatus == 3) {</span>
         // ✅ Status 3 (Request Refund)
         // Income saat ini = total price LAMA (sebelum update)
         // Refund belum dikurangi dari income
         // Cancel = kurangi total price BARU + refund yang harus dikembalikan
         
-<span class="fc" id="L667">        int totalPriceOld = booking.getTotalPrice() + booking.getRefund(); // Total price LAMA</span>
-<span class="fc" id="L668">        int incomeChange = -totalPriceOld; // Atau: -(booking.getTotalPrice() + booking.getRefund())</span>
+<span class="fc" id="L743">        int totalPriceOld = booking.getTotalPrice() + booking.getRefund(); // Total price LAMA</span>
+<span class="fc" id="L744">        int incomeChange = -totalPriceOld; // Atau: -(booking.getTotalPrice() + booking.getRefund())</span>
         
-<span class="fc" id="L670">        updatePropertyIncome(booking, incomeChange);</span>
+<span class="fc" id="L746">        updatePropertyIncome(booking, incomeChange);</span>
         
-<span class="fc" id="L672">        System.out.println(&quot;   Total Price OLD: Rp &quot; + totalPriceOld);</span>
-<span class="fc" id="L673">        System.out.println(&quot;   Income change: -Rp &quot; + totalPriceOld + &quot; (full refund including pending refund)&quot;);</span>
+<span class="fc" id="L748">        System.out.println(&quot;   Total Price OLD: Rp &quot; + totalPriceOld);</span>
+<span class="fc" id="L749">        System.out.println(&quot;   Income change: -Rp &quot; + totalPriceOld + &quot; (full refund including pending refund)&quot;);</span>
     }
     
-<span class="fc" id="L676">    Booking updatedBooking = bookingRepository.save(booking);</span>
-<span class="fc" id="L677">    return convertToResponseDTO(updatedBooking);</span>
+<span class="fc" id="L752">    Booking updatedBooking = bookingRepository.save(booking);</span>
+<span class="fc" id="L753">    return convertToResponseDTO(updatedBooking);</span>
 }
 @Override
 public BookingResponseDTO processRefund(String bookingID, UpdateBookingStatusRequestDTO dto) {
-<span class="fc" id="L681">    Booking booking = bookingRepository.findById(bookingID)</span>
-<span class="pc" id="L682">            .orElseThrow(() -&gt; new RuntimeException(&quot;Booking not found with id: &quot; + bookingID));</span>
+<span class="fc" id="L757">    Booking booking = bookingRepository.findById(bookingID)</span>
+<span class="pc" id="L758">            .orElseThrow(() -&gt; new RuntimeException(&quot;Booking not found with id: &quot; + bookingID));</span>
     
     // ✅ Validasi: Hanya booking dengan status 3 (Request Refund) yang bisa process refund
-<span class="fc bfc" id="L685" title="All 2 branches covered.">    if (booking.getStatus() != 3) {</span>
-<span class="fc" id="L686">        throw new RuntimeException(&quot;Only bookings with status 'Request Refund' can process refund&quot;);</span>
+<span class="fc bfc" id="L761" title="All 2 branches covered.">    if (booking.getStatus() != 3) {</span>
+<span class="fc" id="L762">        throw new RuntimeException(&quot;Only bookings with status 'Request Refund' can process refund&quot;);</span>
     }
     
     // ✅ Validasi: Harus ada refund amount
-<span class="fc bfc" id="L690" title="All 2 branches covered.">    if (booking.getRefund() &lt;= 0) {</span>
-<span class="fc" id="L691">        throw new RuntimeException(&quot;No refund amount to process&quot;);</span>
+<span class="pc bpc" id="L766" title="1 of 2 branches missed.">    if (booking.getRefund() &lt;= 0) {</span>
+<span class="fc" id="L767">        throw new RuntimeException(&quot;No refund amount to process&quot;);</span>
     }
     
-<span class="fc" id="L694">    System.out.println(&quot;💸 Processing refund:&quot;);</span>
-<span class="fc" id="L695">    System.out.println(&quot;   Booking ID: &quot; + bookingID);</span>
-<span class="fc" id="L696">    System.out.println(&quot;   Refund Amount: Rp &quot; + booking.getRefund());</span>
+<span class="nc" id="L770">    System.out.println(&quot;Processing refund:&quot;);</span>
+<span class="nc" id="L771">    System.out.println(&quot;   Booking ID: &quot; + bookingID);</span>
+<span class="nc" id="L772">    System.out.println(&quot;   Refund Amount: Rp &quot; + booking.getRefund());</span>
+<span class="nc" id="L773">    System.out.println(&quot;   Check-in Date: &quot; + booking.getCheckInDate());</span>
+<span class="nc" id="L774">    System.out.println(&quot;   Current Time: &quot; + LocalDateTime.now());</span>
     
     // ✅ Kurangi property income sejumlah refund
-<span class="fc" id="L699">    updatePropertyIncome(booking, -booking.getRefund());</span>
+<span class="nc" id="L777">    updatePropertyIncome(booking, -booking.getRefund());</span>
     
-    // ✅ Update status menjadi 4 (Done)
-<span class="fc" id="L702">    booking.setStatus(4);</span>
-<span class="fc" id="L703">    booking.setUpdatedDate(LocalDateTime.now());</span>
+    // ✅ FIX: Cek apakah sudah check-in atau belum
+<span class="nc" id="L780">    LocalDateTime now = LocalDateTime.now();</span>
+    int newStatus;
     
-<span class="fc" id="L705">    Booking updatedBooking = bookingRepository.save(booking);</span>
+<span class="nc bnc" id="L783" title="All 2 branches missed.">    if (booking.getCheckInDate().isBefore(now)) {</span>
+        // ✅ Sudah melewati check-in → Status menjadi 2 (Cancelled)
+<span class="nc" id="L785">        newStatus = 4;</span>
+<span class="nc" id="L786">        System.out.println(&quot;   ⚠️ Check-in date has passed, status changed to Cancelled&quot;);</span>
+    } else {
+        // ✅ Belum check-in → Status menjadi 1 (Payment Confirmed)
+<span class="nc" id="L789">        newStatus = 1;</span>
+<span class="nc" id="L790">        System.out.println(&quot;   ✅ Check-in date has not passed, status changed to Payment Confirmed&quot;);</span>
+    }
     
-<span class="fc" id="L707">    System.out.println(&quot;✅ Refund processed, status changed to Done&quot;);</span>
+    // ✅ Update status
+<span class="nc" id="L794">    booking.setStatus(newStatus);</span>
+<span class="nc" id="L795">    booking.setUpdatedDate(LocalDateTime.now());</span>
     
-<span class="fc" id="L709">    return convertToResponseDTO(updatedBooking);</span>
+<span class="nc" id="L797">    Booking updatedBooking = bookingRepository.save(booking);</span>
+    
+<span class="nc" id="L799">    System.out.println(&quot;✅ Refund processed, status changed to &quot; + </span>
+<span class="nc bnc" id="L800" title="All 2 branches missed.">        (newStatus == 2 ? &quot;Cancelled&quot; : &quot;Payment Confirmed&quot;));</span>
+    
+<span class="nc" id="L802">    return convertToResponseDTO(updatedBooking);</span>
 }
     
    // ✅ Helper method untuk update property income
 private void updatePropertyIncome(Booking booking, int incomeChange) {
     try {
-<span class="pc bpc" id="L715" title="2 of 4 branches missed.">        if (booking == null || booking.getRoom() == null) {</span>
-<span class="nc" id="L716">            System.err.println(&quot;⚠️ Cannot update property income: Booking or Room is null&quot;);</span>
-<span class="nc" id="L717">            return;</span>
+<span class="pc bpc" id="L808" title="2 of 4 branches missed.">        if (booking == null || booking.getRoom() == null) {</span>
+<span class="nc" id="L809">            System.err.println(&quot;⚠️ Cannot update property income: Booking or Room is null&quot;);</span>
+<span class="nc" id="L810">            return;</span>
         }
         
-<span class="fc" id="L720">        Room room = booking.getRoom();</span>
+<span class="fc" id="L813">        Room room = booking.getRoom();</span>
         
-<span class="pc bpc" id="L722" title="1 of 2 branches missed.">        if (room.getRoomType() == null) {</span>
-<span class="nc" id="L723">            System.err.println(&quot;⚠️ Cannot update property income: RoomType is null for room &quot; + room.getRoomID());</span>
-<span class="nc" id="L724">            return;</span>
+<span class="pc bpc" id="L815" title="1 of 2 branches missed.">        if (room.getRoomType() == null) {</span>
+<span class="nc" id="L816">            System.err.println(&quot;⚠️ Cannot update property income: RoomType is null for room &quot; + room.getRoomID());</span>
+<span class="nc" id="L817">            return;</span>
         }
         
-<span class="pc bpc" id="L727" title="1 of 2 branches missed.">        if (room.getRoomType().getProperty() == null) {</span>
-<span class="nc" id="L728">            System.err.println(&quot;⚠️ Cannot update property income: Property is null for room type &quot; + room.getRoomType().getRoomTypeID());</span>
-<span class="nc" id="L729">            return;</span>
+<span class="pc bpc" id="L820" title="1 of 2 branches missed.">        if (room.getRoomType().getProperty() == null) {</span>
+<span class="nc" id="L821">            System.err.println(&quot;⚠️ Cannot update property income: Property is null for room type &quot; + room.getRoomType().getRoomTypeID());</span>
+<span class="nc" id="L822">            return;</span>
         }
         
         // ✅ Get property entity
-<span class="fc" id="L733">        var property = room.getRoomType().getProperty();</span>
+<span class="fc" id="L826">        var property = room.getRoomType().getProperty();</span>
         
         // ✅ Calculate new income
-<span class="fc" id="L736">        int currentIncome = property.getIncome();</span>
-<span class="fc" id="L737">        int newIncome = currentIncome + incomeChange;</span>
+<span class="fc" id="L829">        int currentIncome = property.getIncome();</span>
+<span class="fc" id="L830">        int newIncome = currentIncome + incomeChange;</span>
         
         // ✅ Prevent negative income (optional, tergantung business logic)
-<span class="fc bfc" id="L740" title="All 2 branches covered.">        if (newIncome &lt; 0) {</span>
-<span class="fc" id="L741">            System.err.println(&quot;⚠️ Warning: Property income akan menjadi negatif!&quot;);</span>
-<span class="fc" id="L742">            System.err.println(&quot;   Current Income: Rp &quot; + currentIncome);</span>
-<span class="fc" id="L743">            System.err.println(&quot;   Income Change: Rp &quot; + incomeChange);</span>
-<span class="fc" id="L744">            System.err.println(&quot;   Calculated New Income: Rp &quot; + newIncome);</span>
+<span class="fc bfc" id="L833" title="All 2 branches covered.">        if (newIncome &lt; 0) {</span>
+<span class="fc" id="L834">            System.err.println(&quot;⚠️ Warning: Property income akan menjadi negatif!&quot;);</span>
+<span class="fc" id="L835">            System.err.println(&quot;   Current Income: Rp &quot; + currentIncome);</span>
+<span class="fc" id="L836">            System.err.println(&quot;   Income Change: Rp &quot; + incomeChange);</span>
+<span class="fc" id="L837">            System.err.println(&quot;   Calculated New Income: Rp &quot; + newIncome);</span>
             // Uncomment jika tidak boleh negatif:
             // newIncome = 0;
         }
         
         // ✅ Update property income
-<span class="fc" id="L750">        property.setIncome(newIncome);</span>
-<span class="fc" id="L751">        propertyRepository.save(property);</span>
+<span class="fc" id="L843">        property.setIncome(newIncome);</span>
+<span class="fc" id="L844">        propertyRepository.save(property);</span>
         
-<span class="fc" id="L753">        System.out.println(&quot;💰 Property income updated:&quot;);</span>
-<span class="fc" id="L754">        System.out.println(&quot;   Property ID: &quot; + property.getPropertyID());</span>
-<span class="fc" id="L755">        System.out.println(&quot;   Property Name: &quot; + property.getPropertyName());</span>
-<span class="fc" id="L756">        System.out.println(&quot;   Old Income: Rp &quot; + currentIncome);</span>
-<span class="fc bfc" id="L757" title="All 2 branches covered.">        System.out.println(&quot;   Change: &quot; + (incomeChange &gt;= 0 ? &quot;+&quot; : &quot;&quot;) + &quot;Rp &quot; + incomeChange);</span>
-<span class="fc" id="L758">        System.out.println(&quot;   New Income: Rp &quot; + newIncome);</span>
+<span class="fc" id="L846">        System.out.println(&quot;💰 Property income updated:&quot;);</span>
+<span class="fc" id="L847">        System.out.println(&quot;   Property ID: &quot; + property.getPropertyID());</span>
+<span class="fc" id="L848">        System.out.println(&quot;   Property Name: &quot; + property.getPropertyName());</span>
+<span class="fc" id="L849">        System.out.println(&quot;   Old Income: Rp &quot; + currentIncome);</span>
+<span class="fc bfc" id="L850" title="All 2 branches covered.">        System.out.println(&quot;   Change: &quot; + (incomeChange &gt;= 0 ? &quot;+&quot; : &quot;&quot;) + &quot;Rp &quot; + incomeChange);</span>
+<span class="fc" id="L851">        System.out.println(&quot;   New Income: Rp &quot; + newIncome);</span>
         
-<span class="nc" id="L760">    } catch (Exception ex) {</span>
-<span class="nc" id="L761">        System.err.println(&quot;❌ Error updating property income: &quot; + ex.getMessage());</span>
-<span class="nc" id="L762">        ex.printStackTrace();</span>
+<span class="nc" id="L853">    } catch (Exception ex) {</span>
+<span class="nc" id="L854">        System.err.println(&quot;❌ Error updating property income: &quot; + ex.getMessage());</span>
+<span class="nc" id="L855">        ex.printStackTrace();</span>
         // Jangan throw exception, biarkan booking tetap tersimpan
-<span class="fc" id="L764">    }</span>
-<span class="fc" id="L765">}</span>
+<span class="fc" id="L857">    }</span>
+<span class="fc" id="L858">}</span>
 
     private BookingResponseDTO convertToResponseDTO(Booking booking) {
     // ✅ Get property name dari room -&gt; roomType -&gt; property
-<span class="fc" id="L769">    String propertyName = &quot;&quot;;</span>
-<span class="fc" id="L770">    String roomName = &quot;&quot;;</span>
+<span class="fc" id="L862">    String propertyName = &quot;&quot;;</span>
+<span class="fc" id="L863">    String roomName = &quot;&quot;;</span>
     
-<span class="fc bfc" id="L772" title="All 2 branches covered.">    if (booking.getRoom() != null) {</span>
+<span class="fc bfc" id="L865" title="All 2 branches covered.">    if (booking.getRoom() != null) {</span>
         // ✅ FIX: Extract HANYA nomor unit dari Room ID
         // Room ID format: HOT-4000-001-201
         // Ambil bagian terakhir setelah split: 201
-<span class="fc" id="L776">        String roomID = booking.getRoom().getRoomID();</span>
-<span class="pc bpc" id="L777" title="1 of 4 branches missed.">        if (roomID != null &amp;&amp; roomID.contains(&quot;-&quot;)) {</span>
-<span class="fc" id="L778">            String[] parts = roomID.split(&quot;-&quot;);</span>
-<span class="fc" id="L779">            roomName = parts[parts.length - 1]; // ✅ Ambil bagian terakhir: &quot;201&quot;</span>
-<span class="fc" id="L780">        } else {</span>
-<span class="fc" id="L781">            roomName = roomID; // Fallback jika format tidak sesuai</span>
+<span class="fc" id="L869">        String roomID = booking.getRoom().getRoomID();</span>
+<span class="pc bpc" id="L870" title="1 of 4 branches missed.">        if (roomID != null &amp;&amp; roomID.contains(&quot;-&quot;)) {</span>
+<span class="fc" id="L871">            String[] parts = roomID.split(&quot;-&quot;);</span>
+<span class="fc" id="L872">            roomName = parts[parts.length - 1]; // ✅ Ambil bagian terakhir: &quot;201&quot;</span>
+<span class="fc" id="L873">        } else {</span>
+<span class="fc" id="L874">            roomName = roomID; // Fallback jika format tidak sesuai</span>
         }
         
-<span class="fc" id="L784">        System.out.println(&quot;🏠 Converting booking to DTO:&quot;);</span>
-<span class="fc" id="L785">        System.out.println(&quot;   Full Room ID: &quot; + roomID);</span>
-<span class="fc" id="L786">        System.out.println(&quot;   Extracted Room Name: &quot; + roomName);</span>
+<span class="fc" id="L877">        System.out.println(&quot;🏠 Converting booking to DTO:&quot;);</span>
+<span class="fc" id="L878">        System.out.println(&quot;   Full Room ID: &quot; + roomID);</span>
+<span class="fc" id="L879">        System.out.println(&quot;   Extracted Room Name: &quot; + roomName);</span>
         
-<span class="pc bpc" id="L788" title="1 of 2 branches missed.">        if (booking.getRoom().getRoomType() != null &amp;&amp; </span>
-<span class="pc bpc" id="L789" title="1 of 2 branches missed.">            booking.getRoom().getRoomType().getProperty() != null) {</span>
-<span class="fc" id="L790">            propertyName = booking.getRoom().getRoomType().getProperty().getPropertyName();</span>
+<span class="pc bpc" id="L881" title="1 of 2 branches missed.">        if (booking.getRoom().getRoomType() != null &amp;&amp; </span>
+<span class="pc bpc" id="L882" title="1 of 2 branches missed.">            booking.getRoom().getRoomType().getProperty() != null) {</span>
+<span class="fc" id="L883">            propertyName = booking.getRoom().getRoomType().getProperty().getPropertyName();</span>
         }
     }
     
-<span class="fc" id="L794">    return BookingResponseDTO.builder()</span>
-<span class="fc" id="L795">            .bookingID(booking.getBookingID())</span>
-<span class="fc" id="L796">            .checkInDate(booking.getCheckInDate())</span>
-<span class="fc" id="L797">            .checkOutDate(booking.getCheckOutDate())</span>
-<span class="fc" id="L798">            .totalDays(booking.getTotalDays())</span>
-<span class="fc" id="L799">            .totalPrice(booking.getTotalPrice())</span>
-<span class="fc" id="L800">            .status(booking.getStatus())</span>
-<span class="fc" id="L801">            .statusName(getStatusName(booking.getStatus()))</span>
-<span class="fc" id="L802">            .customerID(booking.getCustomerID().toString())</span>
-<span class="fc" id="L803">            .customerName(booking.getCustomerName())</span>
-<span class="fc" id="L804">            .customerEmail(booking.getCustomerEmail())</span>
-<span class="fc" id="L805">            .customerPhone(booking.getCustomerPhone())</span>
-<span class="fc" id="L806">            .isBreakfast(booking.isBreakfast())</span>
-<span class="fc" id="L807">            .refund(booking.getRefund())</span>
-<span class="fc" id="L808">            .extraPay(booking.getExtraPay())</span>
-<span class="fc" id="L809">            .capacity(booking.getCapacity())</span>
-<span class="fc" id="L810">            .propertyName(propertyName)</span>
-<span class="fc" id="L811">            .roomName(roomName) // ✅ Sekarang hanya &quot;201&quot;</span>
-<span class="fc bfc" id="L812" title="All 2 branches covered.">            .roomID(booking.getRoom() != null ? booking.getRoom().getRoomID() : null) // Full ID tetap ada</span>
-<span class="fc" id="L813">            .createdDate(booking.getCreatedDate())</span>
-<span class="fc" id="L814">            .updatedDate(booking.getUpdatedDate())</span>
-<span class="fc" id="L815">            .build();</span>
+<span class="fc" id="L887">    return BookingResponseDTO.builder()</span>
+<span class="fc" id="L888">            .bookingID(booking.getBookingID())</span>
+<span class="fc" id="L889">            .checkInDate(booking.getCheckInDate())</span>
+<span class="fc" id="L890">            .checkOutDate(booking.getCheckOutDate())</span>
+<span class="fc" id="L891">            .totalDays(booking.getTotalDays())</span>
+<span class="fc" id="L892">            .totalPrice(booking.getTotalPrice())</span>
+<span class="fc" id="L893">            .status(booking.getStatus())</span>
+<span class="fc" id="L894">            .statusName(getStatusName(booking.getStatus()))</span>
+<span class="fc" id="L895">            .customerID(booking.getCustomerID().toString())</span>
+<span class="fc" id="L896">            .customerName(booking.getCustomerName())</span>
+<span class="fc" id="L897">            .customerEmail(booking.getCustomerEmail())</span>
+<span class="fc" id="L898">            .customerPhone(booking.getCustomerPhone())</span>
+<span class="fc" id="L899">            .isBreakfast(booking.isBreakfast())</span>
+<span class="fc" id="L900">            .refund(booking.getRefund())</span>
+<span class="fc" id="L901">            .extraPay(booking.getExtraPay())</span>
+<span class="fc" id="L902">            .capacity(booking.getCapacity())</span>
+<span class="fc" id="L903">            .propertyName(propertyName)</span>
+<span class="fc" id="L904">            .roomName(roomName) // ✅ Sekarang hanya &quot;201&quot;</span>
+<span class="fc bfc" id="L905" title="All 2 branches covered.">            .roomID(booking.getRoom() != null ? booking.getRoom().getRoomID() : null) // Full ID tetap ada</span>
+<span class="fc" id="L906">            .createdDate(booking.getCreatedDate())</span>
+<span class="fc" id="L907">            .updatedDate(booking.getUpdatedDate())</span>
+<span class="fc" id="L908">            .build();</span>
 }
 
 
-
-// ✅ TAMBAHKAN method ini
 @Override
 public boolean hasBookingConflictExcluding(String roomID, String startDate, String endDate, String excludeBookingID) {
     try {
-<span class="fc" id="L824">        LocalDateTime checkInDate = LocalDateTime.parse(startDate);</span>
-<span class="fc" id="L825">        LocalDateTime checkOutDate = LocalDateTime.parse(endDate);</span>
+<span class="fc" id="L915">        LocalDateTime checkInDate = LocalDateTime.parse(startDate);</span>
+<span class="fc" id="L916">        LocalDateTime checkOutDate = LocalDateTime.parse(endDate);</span>
         
-<span class="fc" id="L827">        System.out.println(&quot;🔍 Checking booking conflicts (excluding current booking):&quot;);</span>
-<span class="fc" id="L828">        System.out.println(&quot;   Room ID: &quot; + roomID);</span>
-<span class="fc" id="L829">        System.out.println(&quot;   Check-in: &quot; + checkInDate);</span>
-<span class="fc" id="L830">        System.out.println(&quot;   Check-out: &quot; + checkOutDate);</span>
-<span class="fc" id="L831">        System.out.println(&quot;   Exclude Booking ID: &quot; + excludeBookingID);</span>
+<span class="fc" id="L918">        System.out.println(&quot;🔍 Checking booking conflicts (excluding current booking):&quot;);</span>
+<span class="fc" id="L919">        System.out.println(&quot;   Room ID: &quot; + roomID);</span>
+<span class="fc" id="L920">        System.out.println(&quot;   Check-in: &quot; + checkInDate);</span>
+<span class="fc" id="L921">        System.out.println(&quot;   Check-out: &quot; + checkOutDate);</span>
+<span class="fc" id="L922">        System.out.println(&quot;   Exclude Booking ID: &quot; + excludeBookingID);</span>
         
         // ✅ Get active bookings untuk room ini (status 0 &amp; 1)
-<span class="fc" id="L834">        List&lt;Booking&gt; activeBookings = bookingRepository.findByRoom_RoomIDAndStatus(roomID, 0);</span>
-<span class="fc" id="L835">        activeBookings.addAll(bookingRepository.findByRoom_RoomIDAndStatus(roomID, 1));</span>
+<span class="fc" id="L925">        List&lt;Booking&gt; activeBookings = bookingRepository.findByRoom_RoomIDAndStatus(roomID, 0);</span>
+<span class="fc" id="L926">        activeBookings.addAll(bookingRepository.findByRoom_RoomIDAndStatus(roomID, 1));</span>
         
         // ✅ Filter: exclude current booking
-<span class="fc" id="L838">        List&lt;Booking&gt; conflicts = activeBookings.stream()</span>
-<span class="fc bfc" id="L839" title="All 2 branches covered.">            .filter(b -&gt; !b.getBookingID().equals(excludeBookingID)) // Exclude current booking</span>
-<span class="fc" id="L840">            .filter(b -&gt; {</span>
+<span class="fc" id="L929">        List&lt;Booking&gt; conflicts = activeBookings.stream()</span>
+<span class="fc bfc" id="L930" title="All 2 branches covered.">            .filter(b -&gt; !b.getBookingID().equals(excludeBookingID)) // Exclude current booking</span>
+<span class="fc" id="L931">            .filter(b -&gt; {</span>
                 // Check if booking overlaps with new dates
-<span class="pc bpc" id="L842" title="1 of 2 branches missed.">                return b.getCheckInDate().isBefore(checkOutDate) &amp;&amp; </span>
-<span class="pc bpc" id="L843" title="1 of 2 branches missed.">                       b.getCheckOutDate().isAfter(checkInDate);</span>
+<span class="pc bpc" id="L933" title="1 of 2 branches missed.">                return b.getCheckInDate().isBefore(checkOutDate) &amp;&amp; </span>
+<span class="pc bpc" id="L934" title="1 of 2 branches missed.">                       b.getCheckOutDate().isAfter(checkInDate);</span>
             })
-<span class="fc" id="L845">            .collect(Collectors.toList());</span>
+<span class="fc" id="L936">            .collect(Collectors.toList());</span>
         
-<span class="fc bfc" id="L847" title="All 2 branches covered.">        if (!conflicts.isEmpty()) {</span>
-<span class="fc" id="L848">            System.out.println(&quot;   ❌ Found &quot; + conflicts.size() + &quot; conflicting booking(s):&quot;);</span>
-<span class="fc bfc" id="L849" title="All 2 branches covered.">            for (Booking b : conflicts) {</span>
-<span class="fc" id="L850">                System.out.println(&quot;      - Booking ID: &quot; + b.getBookingID() + </span>
-<span class="fc" id="L851">                                 &quot; (Check-in: &quot; + b.getCheckInDate() + </span>
-<span class="fc" id="L852">                                 &quot;, Check-out: &quot; + b.getCheckOutDate() + &quot;)&quot;);</span>
-<span class="fc" id="L853">            }</span>
-<span class="fc" id="L854">            return true;</span>
+<span class="fc bfc" id="L938" title="All 2 branches covered.">        if (!conflicts.isEmpty()) {</span>
+<span class="fc" id="L939">            System.out.println(&quot;   ❌ Found &quot; + conflicts.size() + &quot; conflicting booking(s):&quot;);</span>
+<span class="fc bfc" id="L940" title="All 2 branches covered.">            for (Booking b : conflicts) {</span>
+<span class="fc" id="L941">                System.out.println(&quot;      - Booking ID: &quot; + b.getBookingID() + </span>
+<span class="fc" id="L942">                                 &quot; (Check-in: &quot; + b.getCheckInDate() + </span>
+<span class="fc" id="L943">                                 &quot;, Check-out: &quot; + b.getCheckOutDate() + &quot;)&quot;);</span>
+<span class="fc" id="L944">            }</span>
+<span class="fc" id="L945">            return true;</span>
         }
         
-<span class="fc" id="L857">        System.out.println(&quot;   ✅ No booking conflicts found&quot;);</span>
-<span class="fc" id="L858">        return false;</span>
+<span class="fc" id="L948">        System.out.println(&quot;   ✅ No booking conflicts found&quot;);</span>
+<span class="fc" id="L949">        return false;</span>
         
-<span class="nc" id="L860">    } catch (Exception ex) {</span>
-<span class="nc" id="L861">        System.err.println(&quot;   ⚠️ Error checking booking conflict: &quot; + ex.getMessage());</span>
-<span class="nc" id="L862">        return false;</span>
+<span class="nc" id="L951">    } catch (Exception ex) {</span>
+<span class="nc" id="L952">        System.err.println(&quot;   ⚠️ Error checking booking conflict: &quot; + ex.getMessage());</span>
+<span class="nc" id="L953">        return false;</span>
     }
 }
     // ✅ Helper method untuk status name
     private String getStatusName(int status) {
-<span class="fc bfc" id="L867" title="All 6 branches covered.">        return switch (status) {</span>
-<span class="fc" id="L868">            case 0 -&gt; &quot;Waiting for Payment&quot;;</span>
-<span class="fc" id="L869">            case 1 -&gt; &quot;Payment Confirmed&quot;;</span>
-<span class="fc" id="L870">            case 2 -&gt; &quot;Cancelled&quot;;</span>
-<span class="fc" id="L871">            case 3 -&gt; &quot;Request Refund&quot;;</span>
-<span class="fc" id="L872">            case 4 -&gt; &quot;Done&quot;;</span>
-<span class="fc" id="L873">            default -&gt; &quot;Unknown&quot;;</span>
+<span class="fc bfc" id="L958" title="All 6 branches covered.">        return switch (status) {</span>
+<span class="fc" id="L959">            case 0 -&gt; &quot;Waiting for Payment&quot;;</span>
+<span class="fc" id="L960">            case 1 -&gt; &quot;Payment Confirmed&quot;;</span>
+<span class="fc" id="L961">            case 2 -&gt; &quot;Cancelled&quot;;</span>
+<span class="fc" id="L962">            case 3 -&gt; &quot;Request Refund&quot;;</span>
+<span class="fc" id="L963">            case 4 -&gt; &quot;Done&quot;;</span>
+<span class="fc" id="L964">            default -&gt; &quot;Unknown&quot;;</span>
         };
     }
 
     @Override
 public List&lt;BookingChartResponseDTO&gt; getBookingChartData(Integer month, Integer year) {
-<span class="fc" id="L879">    System.out.println(&quot; Generating booking chart data:&quot;);</span>
-<span class="fc" id="L880">    System.out.println(&quot;   Month: &quot; + month);</span>
-<span class="fc" id="L881">    System.out.println(&quot;   Year: &quot; + year);</span>
+<span class="fc" id="L970">    System.out.println(&quot; Generating booking chart data:&quot;);</span>
+<span class="fc" id="L971">    System.out.println(&quot;   Month: &quot; + month);</span>
+<span class="fc" id="L972">    System.out.println(&quot;   Year: &quot; + year);</span>
     
     // ✅ Ambil semua bookings dengan status 4 (Done)
-<span class="fc" id="L884">    List&lt;Booking&gt; doneBookings = bookingRepository.findByStatus(4);</span>
+<span class="fc" id="L975">    List&lt;Booking&gt; doneBookings = bookingRepository.findByStatus(4);</span>
     
     // ✅ Filter berdasarkan bulan dan tahun dari check-in date
-<span class="fc" id="L887">    List&lt;Booking&gt; filteredBookings = doneBookings.stream()</span>
-<span class="fc" id="L888">            .filter(b -&gt; {</span>
-<span class="fc bfc" id="L889" title="All 2 branches covered.">                if (b.getCheckInDate() == null) return false;</span>
+<span class="fc" id="L978">    List&lt;Booking&gt; filteredBookings = doneBookings.stream()</span>
+<span class="fc" id="L979">            .filter(b -&gt; {</span>
+<span class="fc bfc" id="L980" title="All 2 branches covered.">                if (b.getCheckInDate() == null) return false;</span>
                 
-<span class="fc" id="L891">                int bookingMonth = b.getCheckInDate().getMonthValue();</span>
-<span class="fc" id="L892">                int bookingYear = b.getCheckInDate().getYear();</span>
+<span class="fc" id="L982">                int bookingMonth = b.getCheckInDate().getMonthValue();</span>
+<span class="fc" id="L983">                int bookingYear = b.getCheckInDate().getYear();</span>
                 
-<span class="fc bfc" id="L894" title="All 4 branches covered.">                boolean matchMonth = (month == null || bookingMonth == month);</span>
-<span class="pc bpc" id="L895" title="2 of 4 branches missed.">                boolean matchYear = (year == null || bookingYear == year);</span>
+<span class="fc bfc" id="L985" title="All 4 branches covered.">                boolean matchMonth = (month == null || bookingMonth == month);</span>
+<span class="pc bpc" id="L986" title="2 of 4 branches missed.">                boolean matchYear = (year == null || bookingYear == year);</span>
                 
-<span class="pc bpc" id="L897" title="1 of 4 branches missed.">                return matchMonth &amp;&amp; matchYear;</span>
+<span class="pc bpc" id="L988" title="1 of 4 branches missed.">                return matchMonth &amp;&amp; matchYear;</span>
             })
-<span class="fc" id="L899">            .collect(Collectors.toList());</span>
+<span class="fc" id="L990">            .collect(Collectors.toList());</span>
     
-<span class="fc" id="L901">    System.out.println(&quot;   Total Done Bookings: &quot; + doneBookings.size());</span>
-<span class="fc" id="L902">    System.out.println(&quot;   Filtered Bookings: &quot; + filteredBookings.size());</span>
+<span class="fc" id="L992">    System.out.println(&quot;   Total Done Bookings: &quot; + doneBookings.size());</span>
+<span class="fc" id="L993">    System.out.println(&quot;   Filtered Bookings: &quot; + filteredBookings.size());</span>
     
     // ✅ Group by property dan hitung total income
-<span class="fc" id="L905">    Map&lt;String, BookingChartResponseDTO&gt; propertyIncomeMap = new HashMap&lt;&gt;();</span>
+<span class="fc" id="L996">    Map&lt;String, BookingChartResponseDTO&gt; propertyIncomeMap = new HashMap&lt;&gt;();</span>
     
-<span class="fc bfc" id="L907" title="All 2 branches covered.">    for (Booking booking : filteredBookings) {</span>
-<span class="fc bfc" id="L908" title="All 2 branches covered.">        if (booking.getRoom() == null || </span>
-<span class="pc bpc" id="L909" title="1 of 2 branches missed.">            booking.getRoom().getRoomType() == null || </span>
-<span class="pc bpc" id="L910" title="1 of 2 branches missed.">            booking.getRoom().getRoomType().getProperty() == null) {</span>
-<span class="nc" id="L911">            continue;</span>
+<span class="fc bfc" id="L998" title="All 2 branches covered.">    for (Booking booking : filteredBookings) {</span>
+<span class="fc bfc" id="L999" title="All 2 branches covered.">        if (booking.getRoom() == null || </span>
+<span class="pc bpc" id="L1000" title="1 of 2 branches missed.">            booking.getRoom().getRoomType() == null || </span>
+<span class="pc bpc" id="L1001" title="1 of 2 branches missed.">            booking.getRoom().getRoomType().getProperty() == null) {</span>
+<span class="nc" id="L1002">            continue;</span>
         }
         
-<span class="fc" id="L914">        var property = booking.getRoom().getRoomType().getProperty();</span>
-<span class="fc" id="L915">        String propertyID = property.getPropertyID();</span>
+<span class="fc" id="L1005">        var property = booking.getRoom().getRoomType().getProperty();</span>
+<span class="fc" id="L1006">        String propertyID = property.getPropertyID();</span>
         
         // ✅ Get atau create entry untuk property ini
-<span class="fc" id="L918">        BookingChartResponseDTO chartData = propertyIncomeMap.getOrDefault(</span>
+<span class="fc" id="L1009">        BookingChartResponseDTO chartData = propertyIncomeMap.getOrDefault(</span>
             propertyID,
-<span class="fc" id="L920">            BookingChartResponseDTO.builder()</span>
-<span class="fc" id="L921">                .propertyID(propertyID)</span>
-<span class="fc" id="L922">                .propertyName(property.getPropertyName())</span>
-<span class="fc" id="L923">                .totalIncome(0)</span>
-<span class="fc" id="L924">                .totalBookings(0)</span>
-<span class="fc" id="L925">                .month(month)</span>
-<span class="fc" id="L926">                .year(year)</span>
-<span class="fc" id="L927">                .build()</span>
+<span class="fc" id="L1011">            BookingChartResponseDTO.builder()</span>
+<span class="fc" id="L1012">                .propertyID(propertyID)</span>
+<span class="fc" id="L1013">                .propertyName(property.getPropertyName())</span>
+<span class="fc" id="L1014">                .totalIncome(0)</span>
+<span class="fc" id="L1015">                .totalBookings(0)</span>
+<span class="fc" id="L1016">                .month(month)</span>
+<span class="fc" id="L1017">                .year(year)</span>
+<span class="fc" id="L1018">                .build()</span>
         );
         
         // ✅ Update total income dan total bookings
-<span class="fc" id="L931">        chartData.setTotalIncome(chartData.getTotalIncome() + booking.getTotalPrice());</span>
-<span class="fc" id="L932">        chartData.setTotalBookings(chartData.getTotalBookings() + 1);</span>
+<span class="fc" id="L1022">        chartData.setTotalIncome(chartData.getTotalIncome() + booking.getTotalPrice());</span>
+<span class="fc" id="L1023">        chartData.setTotalBookings(chartData.getTotalBookings() + 1);</span>
         
-<span class="fc" id="L934">        propertyIncomeMap.put(propertyID, chartData);</span>
-<span class="fc" id="L935">    }</span>
+<span class="fc" id="L1025">        propertyIncomeMap.put(propertyID, chartData);</span>
+<span class="fc" id="L1026">    }</span>
     
     // ✅ Convert map to list dan sort by income (descending)
-<span class="fc" id="L938">    List&lt;BookingChartResponseDTO&gt; result = propertyIncomeMap.values().stream()</span>
-<span class="fc" id="L939">            .sorted((a, b) -&gt; b.getTotalIncome().compareTo(a.getTotalIncome()))</span>
-<span class="fc" id="L940">            .collect(Collectors.toList());</span>
+<span class="fc" id="L1029">    List&lt;BookingChartResponseDTO&gt; result = propertyIncomeMap.values().stream()</span>
+<span class="fc" id="L1030">            .sorted((a, b) -&gt; b.getTotalIncome().compareTo(a.getTotalIncome()))</span>
+<span class="fc" id="L1031">            .collect(Collectors.toList());</span>
     
-<span class="fc" id="L942">    System.out.println(&quot;   Properties found: &quot; + result.size());</span>
-<span class="fc bfc" id="L943" title="All 2 branches covered.">    for (BookingChartResponseDTO data : result) {</span>
-<span class="fc" id="L944">        System.out.println(&quot;   - &quot; + data.getPropertyName() + &quot;: Rp &quot; + data.getTotalIncome() + </span>
-<span class="fc" id="L945">                         &quot; (&quot; + data.getTotalBookings() + &quot; bookings)&quot;);</span>
-<span class="fc" id="L946">    }</span>
+<span class="fc" id="L1033">    System.out.println(&quot;   Properties found: &quot; + result.size());</span>
+<span class="fc bfc" id="L1034" title="All 2 branches covered.">    for (BookingChartResponseDTO data : result) {</span>
+<span class="fc" id="L1035">        System.out.println(&quot;   - &quot; + data.getPropertyName() + &quot;: Rp &quot; + data.getTotalIncome() + </span>
+<span class="fc" id="L1036">                         &quot; (&quot; + data.getTotalBookings() + &quot; bookings)&quot;);</span>
+<span class="fc" id="L1037">    }</span>
     
-<span class="fc" id="L948">    return result;</span>
+<span class="fc" id="L1039">    return result;</span>
 }
 
 

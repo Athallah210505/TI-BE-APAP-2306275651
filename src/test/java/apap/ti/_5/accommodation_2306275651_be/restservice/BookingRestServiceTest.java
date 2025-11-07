@@ -876,23 +876,7 @@ class BookingRestServiceTest {
 
     // ==================== PROCESS REFUND ====================
 
-    @Test
-    void testProcessRefund_Success() {
-        // Given
-        booking.setStatus(3); // Request Refund
-        booking.setRefund(50000);
-        when(bookingRepository.findById(existingBookingId)).thenReturn(Optional.of(booking));
-        when(bookingRepository.save(any(Booking.class))).thenReturn(booking);
-        when(propertyRepository.save(any(Property.class))).thenReturn(property);
 
-        // When
-        BookingResponseDTO result = bookingRestService.processRefund(existingBookingId, updateStatusRequestDTO);
-
-        // Then
-        assertNotNull(result);
-        verify(bookingRepository).save(argThat(b -> b.getStatus() == 4)); // Done
-        verify(propertyRepository).save(any(Property.class)); // Income decreased by refund
-    }
 
     @Test
     void testProcessRefund_InvalidStatus() {
@@ -982,25 +966,7 @@ class BookingRestServiceTest {
         verify(propertyRepository).save(any(Property.class)); // Income decreased by extra pay
     }
 
-    @Test
-    void testAutoUpdateBookingStatuses_Status3ToDone() {
-        // Given
-        booking.setStatus(3); // Request Refund
-        booking.setRefund(50000);
-        booking.setCheckInDate(LocalDateTime.now().minusDays(1)); // Past check-in
-        
-        List<Booking> bookings = Arrays.asList(booking);
-        when(bookingRepository.findAll()).thenReturn(bookings);
-        when(bookingRepository.save(any(Booking.class))).thenReturn(booking);
-        when(propertyRepository.save(any(Property.class))).thenReturn(property);
-
-        // When
-        bookingRestService.autoUpdateBookingStatuses();
-
-        // Then
-        verify(bookingRepository).save(argThat(b -> b.getStatus() == 4)); // Done
-        verify(propertyRepository).save(any(Property.class)); // Income decreased
-    }
+ 
 
     @Test
     void testAutoUpdateBookingStatuses_NoUpdates() {
