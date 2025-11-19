@@ -10,16 +10,35 @@ variables:
 
 build:
   stage: build
-  image: gradle:8.5-jdk21
+  image: eclipse-temurin:21-jdk
+  cache:
+    paths:
+      - .gradle/wrapper
+      - .gradle/caches
   script:
     - chmod +x ./gradlew
-    # Cleanup untuk menghemat space
-    - rm -rf .gradle/caches/*/generated-gradle-jars || true
-    - rm -rf .gradle/caches/*/fileHashes || true
     # Set environment variables untuk timeout lebih lama
-    - export GRADLE_OPTS="$GRADLE_OPTS -Dorg.gradle.daemon=false -Dorg.gradle.parallel=false"
-    # Build dengan menggunakan Gradle yang sudah ada di image
-    - ./gradlew clean build -x test --no-daemon --no-build-cache
+    - export GRADLE_OPTS="$GRADLE_OPTS -Dorg.gradle.internal.http.connectionTimeout=120000 -Dorg.gradle.internal.http.socketTimeout=120000"
+    # Retry mechanism dengan max 3 attempts
+    - |
+      MAX_RETRIES=3
+      RETRY_COUNT=0
+      while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
+        echo "Attempt $((RETRY_COUNT + 1)) of $MAX_RETRIES"
+        if ./gradlew clean build -x test --no-daemon --refresh-dependencies; then
+          echo "Build successful!"
+          break
+        else
+          RETRY_COUNT=$((RETRY_COUNT + 1))
+          if [ $RETRY_COUNT -lt $MAX_RETRIES ]; then
+            echo "Build failed, waiting 15 seconds before retry..."
+            sleep 15
+          else
+            echo "Build failed after $MAX_RETRIES attempts"
+            exit 1
+          fi
+        fi
+      done
     - cp $(find build/libs -name "*.jar" | head -n 1) app.jar
   artifacts:
     paths:
