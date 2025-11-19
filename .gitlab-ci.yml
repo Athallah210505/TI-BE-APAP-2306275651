@@ -4,8 +4,10 @@ stages:
   - deploy
 
 variables:
-  DOCKER_IMAGE_NAME: nadhif21/accommodation-fe
+  DOCKER_IMAGE_NAME: nadhif21/accommodation-be
   IMAGE_TAG: $CI_COMMIT_SHORT_SHA
+
+  
 
 build:
   stage: build
