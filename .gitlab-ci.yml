@@ -17,9 +17,7 @@ build:
       - .gradle/caches
   script:
     - chmod +x ./gradlew
-    # Set environment variables untuk timeout lebih lama
     - export GRADLE_OPTS="$GRADLE_OPTS -Dorg.gradle.internal.http.connectionTimeout=120000 -Dorg.gradle.internal.http.socketTimeout=120000"
-    # Retry mechanism dengan max 3 attempts
     - |
       MAX_RETRIES=3
       RETRY_COUNT=0
@@ -89,7 +87,6 @@ deploy:
     - chmod 600 ~/.ssh/id_rsa
     - ssh-keyscan -H "$EC2_HOST" >> ~/.ssh/known_hosts
   script:
-    - echo "Generating Kubernetes ConfigMap & Secret via printf..."
     - |
       printf "apiVersion: v1\nkind: ConfigMap\nmetadata:\n  name: accommodation-be-config\n  namespace: default\ndata:\n  DATABASE_URL_PROD: \"%s\"\n  DATABASE_USERNAME: \"%s\"\n" \
       "$DATABASE_URL_PROD_1" "$DATABASE_USERNAME" > configmap.yaml
@@ -100,10 +97,6 @@ deploy:
     - echo "Creating -> deployment.yaml, configmap.yaml, secret.yaml, service.yaml, ingress.yaml"
     - ssh $EC2_USER@$EC2_HOST "mkdir -p ~/app/accommodation-be/k8s"
     - scp deployment.yaml configmap.yaml secret.yaml k8s/service.yaml k8s/ingress.yaml $EC2_USER@$EC2_HOST:~/app/accommodation-be/k8s/
-    - |
-      ssh $EC2_USER@$EC2_HOST "
-        sudo k3s kubectl apply -f ~/app/accommodation-be/k8s/ &&
-        sudo k3s kubectl rollout status deployment/accommodation-be -n default
-      "
+    - ssh $EC2_USER@$EC2_HOST "sudo k3s kubectl apply -f ~/app/accommodation-be/k8s/ && sudo k3s kubectl rollout status deployment/accommodation-be -n default"
   only:
     - feat/praktikum-9
