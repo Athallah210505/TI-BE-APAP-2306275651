@@ -48,7 +48,7 @@ build:
       - k8s/service.yaml
     expire_in: 1 hour
   only:
-    - feat/praktikum-9-be1
+    - feat/praktikum-9
 
 docker-push:
   stage: docker-push
@@ -69,7 +69,7 @@ docker-push:
       - image_tag.txt
     expire_in: 1 hour
   only:
-    - feat/praktikum-9-be1
+    - feat/praktikum-9
 
 deploy:
   stage: deploy
@@ -100,4 +100,4 @@ deploy:
         sudo k3s kubectl rollout status deployment/accommodation-be -n default
       "
   only:
-    - feat/praktikum-9-be1
+    - feat/praktikum-9
