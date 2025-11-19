@@ -4,23 +4,23 @@ stages:
   - deploy
 
 variables:
-  DOCKER_IMAGE_NAME: nadhif21/accommodation-be
+  DOCKER_IMAGE_NAME: $DOCKER_IMAGE_NAME_1
   IMAGE_TAG: $CI_COMMIT_SHORT_SHA
-
-  
 
 build:
   stage: build
-  image: node:20
+  image: eclipse-temurin:21-jdk
   cache:
     paths:
-      - node_modules
+      - .gradle/wrapper
+      - .gradle/caches
   script:
-    - npm ci
-    - npm run build
+    - chmod +x ./gradlew
+    - ./gradlew clean bootJar -x test --no-daemon
+    - cp $(find build/libs -name "*.jar" ! -name "*-plain.jar" | head -n 1) app.jar
   artifacts:
     paths:
-      - dist
+      - app.jar
       - Dockerfile
       - k8s/deployment.yaml
       - k8s/service.yaml
@@ -63,14 +63,21 @@ deploy:
     - ssh-keyscan -H "$EC2_HOST" >> ~/.ssh/known_hosts
   script:
     - IMAGE_TAG=$(cat image_tag.txt)
+    - echo "Generating Kubernetes ConfigMap & Secret via printf..."
+    - |
+      printf "apiVersion: v1\nkind: ConfigMap\nmetadata:\n  name: accommodation-be-config\n  namespace: default\ndata:\n  DATABASE_URL_PROD: \"%s\"\n  DATABASE_USERNAME: \"%s\"\n" \
+      "$DATABASE_URL_PROD_1" "$DATABASE_USERNAME" > configmap.yaml
+    - |
+      printf "apiVersion: v1\nkind: Secret\nmetadata:\n  name: accommodation-be-secret\n  namespace: default\ntype: Opaque\nstringData:\n  DATABASE_PASSWORD: \"%s\"\n  JWT_SECRET_KEY: \"%s\"\n  CORS_ALLOWED_ORIGINS: \"%s\"\n" \
+      "$DATABASE_PASSWORD" "$JWT_SECRET_KEY" "$CORS_ALLOWED_ORIGINS" > secret.yaml
     - sed "s|REPLACE_ME_TAG|$IMAGE_TAG|g" k8s/deployment.yaml > deployment.yaml
-    - echo "Creating -> deployment.yaml, service.yaml, ingress.yaml"
-    - ssh $EC2_USER@$EC2_HOST "mkdir -p ~/app/accommodation-fe/k8s"
-    - scp deployment.yaml k8s/service.yaml k8s/ingress.yaml $EC2_USER@$EC2_HOST:~/app/accommodation-fe/k8s/
+    - echo "Creating -> deployment.yaml, configmap.yaml, secret.yaml, service.yaml, ingress.yaml"
+    - ssh $EC2_USER@$EC2_HOST "mkdir -p ~/app/accommodation-be/k8s"
+    - scp deployment.yaml configmap.yaml secret.yaml k8s/service.yaml k8s/ingress.yaml $EC2_USER@$EC2_HOST:~/app/accommodation-be/k8s/
     - |
       ssh $EC2_USER@$EC2_HOST "
-        sudo k3s kubectl apply -f ~/app/accommodation-fe/k8s/ &&
-        sudo k3s kubectl rollout status deployment/accommodation-fe -n default
+        sudo k3s kubectl apply -f ~/app/accommodation-be/k8s/ &&
+        sudo k3s kubectl rollout status deployment/accommodation-be -n default
       "
   only:
     - feat/praktikum-9
