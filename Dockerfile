@@ -1,13 +1,22 @@
-# Production stage - JAR sudah di-build di CI/CD
-FROM eclipse-temurin:21-jre
+# Stage 1: Build
+FROM gradle:8.5-jdk21 AS build
 
 WORKDIR /app
 
+# Copy gradle files
+COPY build.gradle settings.gradle ./
+COPY gradle ./gradle
+
+# Copy source code
+COPY src ./src
+
+# Build the application
+RUN gradle build -x test
+
+# Stage 2: Run
+FROM eclipse-temurin:21-jre
+WORKDIR /app
 ENV SPRING_PROFILES_ACTIVE=prod
-
-# Copy JAR file yang sudah di-build dari CI/CD
-COPY app.jar app.jar
-
+COPY --from=build /app/build/libs/*.jar app.jar
 EXPOSE 8080
-
 ENTRYPOINT ["java", "-jar", "app.jar"]
