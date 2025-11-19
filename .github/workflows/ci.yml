@@ -108,3 +108,6 @@ jobs:
             sudo k3s kubectl apply -f ~/app/accommodation-be/k8s/ &&
             sudo k3s kubectl rollout status deployment/accommodation-be -n default
           "
+
+
+          
