@@ -6,7 +6,7 @@ on:
       - feat/praktikum-9
 
 env:
-  DOCKER_IMAGE_NAME: ${{ secrets.DOCKER_IMAGE_NAME }}
+  DOCKER_IMAGE_NAME: ${{ secrets.DOCKER_IMAGE }}
   IMAGE_TAG: ${{ github.sha }}
 
 jobs:
@@ -56,10 +56,10 @@ jobs:
         run: echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
 
       - name: Build Docker image
-        run: docker build -t $DOCKER_IMAGE_NAME:$IMAGE_TAG .
+        run: docker build -t $DOCKER_IMAGE:$IMAGE_TAG .
 
       - name: Push Docker image
-        run: docker push $DOCKER_IMAGE_NAME:$IMAGE_TAG
+        run: docker push $DOCKER_IMAGE:$IMAGE_TAG
 
   deploy:
     runs-on: ubuntu-latest
@@ -110,4 +110,3 @@ jobs:
           "
 
 
-          
